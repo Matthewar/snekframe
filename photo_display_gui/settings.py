@@ -90,6 +90,10 @@ class ShutdownWindow:
         self._info_label.grid_remove()
         self._cancel_button.grid_remove()
 
+    @property
+    def rows(self):
+        return 2
+
 class SettingsWindow:
     def __init__(self, frame, selection, destroy_display_window): # TODO: Previous screen if possible
         self._main_window = frame
@@ -102,14 +106,22 @@ class SettingsWindow:
                 select(Settings).limit(1)
             ).one_or_none()
 
+        row = 0
+        LEFTCOLUMN = 1
+        RIGHTCOLUMN = LEFTCOLUMN + 1
+        COLUMNSPAN = RIGHTCOLUMN - LEFTCOLUMN + 1
+
         photo_settings_title = ttk.Label(self._inner_window, text="Photo Settings", justify=tk.CENTER, font=FONTS.subtitle)
-        photo_settings_title.grid(row=0, column=1, pady=(5, 10), columnspan=2)
+        photo_settings_title.grid(row=row, column=LEFTCOLUMN, pady=(5, 10), columnspan=COLUMNSPAN)
+        row += 1
 
         shuffle_photos_label = ttk.Label(self._inner_window, text="Shuffle:", justify=tk.LEFT, font=FONTS.default)
-        shuffle_photos_label.grid(row=1, column=1, pady=5)
+        shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         shuffle_photos_frame = ttk.Frame(self._inner_window)
-        shuffle_photos_frame.grid(row=1, column=2, pady=5)
+        shuffle_photos_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
+
+        row += 1
 
         # TODO: If no photos, disable all shuffling?
         self._shuffle = tk.BooleanVar(value=all_settings.shuffle_photos)
@@ -124,46 +136,52 @@ class SettingsWindow:
         shuffle_photos_frame.grid_columnconfigure(4, weight=1)
 
         photos_info_label = ttk.Label(self._inner_window, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
-        photos_info_label.grid(row=2, column=1, pady=5)
+        photos_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         self._num_photos = tk.IntVar()
         self._num_photos.set(-1) # TODO: Move to constructor?
         num_photos_label = ttk.Label(self._inner_window, textvariable=self._num_photos, justify=tk.RIGHT, font=FONTS.default)
-        num_photos_label.grid(row=2, column=2, pady=5)
+        num_photos_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         albums_info_label = ttk.Label(self._inner_window, text="Number of Albums:", justify=tk.LEFT, font=FONTS.default)
-        albums_info_label.grid(row=3, column=1, pady=5)
+        albums_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         self._num_albums = tk.IntVar()
         self._num_albums.set(-1) # TODO: Move to constructor?
         num_albums_label = ttk.Label(self._inner_window, textvariable=self._num_albums, justify=tk.RIGHT, font=FONTS.default)
-        num_albums_label.grid(row=3, column=2, pady=5)
+        num_albums_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         self._update_num_photos()
 
         rescan_photos_label = ttk.Label(self._inner_window, text="Rescan:", justify=tk.LEFT, font=FONTS.default)
-        rescan_photos_label.grid(row=4, column=1, pady=5)
+        rescan_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         # TODO: Add loading state
         rescan_photos_button = ttk.Button(self._inner_window, text="Go!", command=self._trigger_rescan)
-        rescan_photos_button.grid(row=4, column=2, pady=5)
+        rescan_photos_button.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         system_settings_title = ttk.Label(self._inner_window, text="System Settings", justify=tk.CENTER, font=FONTS.subtitle)
-        system_settings_title.grid(row=5, column=1, pady=(10, 10), columnspan=2)
+        system_settings_title.grid(row=row, column=LEFTCOLUMN, pady=(10, 10), columnspan=COLUMNSPAN)
+        row += 1
 
         ip_addr_title_label = ttk.Label(self._inner_window, text="IP Address:", justify=tk.LEFT, font=FONTS.default)
-        ip_addr_title_label.grid(row=6, column=1, pady=5)
+        ip_addr_title_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         self._ip_addr = tk.StringVar()
         self._ip_addr_info_label = ttk.Label(self._inner_window, textvariable=self._ip_addr, justify=tk.RIGHT, font=FONTS.default)
-        self._ip_addr_info_label.grid(row=6, column=2, pady=5)
+        self._ip_addr_info_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
         # TODO: Add refresh button
         self._get_ip_addr() # TODO: if displayed
+        row += 1
 
         # TODO: Upgrade?
 
-        self._shutdown_window = ShutdownWindow(self._inner_window, firstrow=7, firstcolumn=1, grid_pady=5)
+        self._shutdown_window = ShutdownWindow(self._inner_window, firstrow=row, firstcolumn=LEFTCOLUMN, grid_pady=5)
+        row += self._shutdown_window.rows
 
         self._inner_window.grid_columnconfigure(0, weight=1)
-        self._inner_window.grid_columnconfigure(9, weight=1)
+        self._inner_window.grid_columnconfigure(RIGHTCOLUMN+1, weight=1)
         self._inner_window.place(x=0, y=0, width=WINDOW_WIDTH)
 
     def _get_shuffle_on_state(self):
