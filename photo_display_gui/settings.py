@@ -15,12 +15,6 @@ import tkinter.ttk as ttk
 
 from sqlalchemy.sql.expression import func, select, update, delete
 
-# [General]
-# rotation = landscape
-# [WiFi]
-# ssid
-# password
-
 class ShutdownWindow:
     def __init__(self, parent, firstrow=0, firstcolumn=0, grid_pady=5):
         self._countdown_id = None
