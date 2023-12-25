@@ -121,8 +121,6 @@ class SettingsWindow:
         shuffle_photos_frame = ttk.Frame(self._inner_window)
         shuffle_photos_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
-        row += 1
-
         # TODO: If no photos, disable all shuffling?
         self._shuffle = tk.BooleanVar(value=all_settings.shuffle_photos)
         self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False)
@@ -134,6 +132,8 @@ class SettingsWindow:
         self._shuffle_trigger_button.grid(row=0, column=3)
         shuffle_photos_frame.grid_columnconfigure(0, weight=1)
         shuffle_photos_frame.grid_columnconfigure(4, weight=1)
+
+        row += 1
 
         photos_info_label = ttk.Label(self._inner_window, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
         photos_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
