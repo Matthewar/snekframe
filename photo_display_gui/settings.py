@@ -191,8 +191,11 @@ class SettingsWindow:
 
         with PERSISTENT_SESSION() as session:
             result = session.execute(
-                update(Settings).where(Settings.shuffle_photos != self._shuffle.get()).values(shuffle_photos=self._shuffle.get()).returning(Settings.id)
+                select(Settings.id).where(Settings.shuffle_photos != self._shuffle.get())
             ).one_or_none()
+            session.execute(
+                update(Settings).where(Settings.shuffle_photos != self._shuffle.get()).values(shuffle_photos=self._shuffle.get())
+            )
             session.commit()
 
         if result is not None:
