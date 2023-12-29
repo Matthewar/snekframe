@@ -53,6 +53,7 @@ class MainWindow:
         self._root.title("Photos")
         self._root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self._root.resizable(False, False)
+        self._root.attributes("-fullscreen", True)
 
         FONTS.generate()
         STYLES.generate()

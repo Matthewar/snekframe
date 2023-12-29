@@ -10,12 +10,92 @@ Needs Raspberry Pi OS including desktop environment.
 ### 2. Setup Root User
 Normal root user setup (dotfiles, etc.).
 
-Require password for sudo
+Setup firewall and `sshd_config` as desired. Suggested:
+```bash
+sudo apt install ufw
+sudo ufw allow SSH
+sudo ufw enable
+```
 
-Setup firewall
-- sudo apt install ufw
-- sudo ufw allow SSH
-- sudo ufw enable
+Can also login to WiFi at this stage if already have network credentials (but can also do this later).
+Use `sudo raspi-config`.
+
+### 3. Setup Login User
+Raspberry Pi by default makes the first user login automatically and doesn't require password for sudo.
+To fix this, delete default sudoers no password file:
+```bash
+sudo rm /etc/sudoers.d/010_pi-nopasswd
+```
+
+Can also comment out `@includedir /etc/sudoers.d` in `/etc/sudoers` if desired (can use `visudo` to edit).
+This shouldn't be done if using the sudoers permission file in the next step.
+
+### 4. Setup Automated Upgrades
+Using `unattended-upgrades` can automatically upgrade the device with security upgrades.
+
+```bash
+sudo apt install unattended-upgrades apt-listchanges
+```
+
+To email info about package upgrades, need `mailx`.
+```bash
+sudo apt install mailutils # Required for updates to be emailed
+```
+
+Once installed, update `/etc/apt/apt.conf.d/50unattended-upgrades`:
+- `Unattended-Upgrade::Mail "root";`
+  - Need to have installed `mailx`
+  - `root` can be replaced with an external email with the necessary configuration.
+- `Unattended-Upgrade::Automatic-Reboot "true";`
+  - Will reboot if required after upgrade
+- `Unattended-Upgrade::Automatic-Reboot-Time "03:00";`
+  - Time reboot will occur (if required) after packages are installed
+
+Update `/etc/apt/apt.conf.d/20auto-upgrades`:
+- `APT::Periodic::Unattended-Upgrade "1";`
+  - Upgrade is performed daily
+
+To adjust timing of updates:
+```bash
+sudo systemctl edit apt-daily.timer
+```
+
+Personally I leave this unchanged, updates shouldn't affect performance.
+
+To adjust timing of upgrades:
+```bash
+sudo systemctl edit apt-daily-upgrade.timer
+```
+
+Add the following section:
+```systemd.timer
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 2:00
+RandomizedDelaySec=30m
+```
+
+- First `OnCalender` resets the expression
+- Second `OnCalendar` sets upgrade to 2am (an hour before reboot time)
+- `RandomizedDelaySec` allows some randomness when upgrade starts, should still be enough time to finish before reboot check
+
+Can review this has been successfully applied with `sudo systemctl list-timers apt-daily-upgrade`.
+
+### 5. Setup Program User
+System user (cannot be logged into) which stores the relevant files and is used to run the program.
+
+```bash
+sudo useradd --system --comment "User for the photo display program" --no-create-home photoframe
+sudo mkdir -p /var/photoframe
+sudo chown photoframe:photoframe /var/photoframe
+sudo chmod a-rwx,g+rx,u+rwx /var/photoframe
+```
+
+Install the sudoers file to allow the `photoframe` user to perform operations like shutdown and reboot.
+```bash
+sudo cp install/sudoer.photoframe /etc/sudoers.d/photoframe
+sudo chown root:root /etc/sudoers.d/photoframe
+```
 
 ## Setup Program
 
