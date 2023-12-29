@@ -53,6 +53,7 @@ class MainWindow:
         self._root.title("Photos")
         self._root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self._root.resizable(False, False)
+        self._root.attributes("-fullscreen", True)
 
         FONTS.generate()
         STYLES.generate()
@@ -90,7 +91,7 @@ class MainWindow:
         SharedBase.metadata.create_all(PERSISTENT_ENGINE)
         with PERSISTENT_SESSION() as session:
             # TODO: Add defaults to ORM?
-            session.add(DatabaseVersion(version="0.0.1"))
+            session.add(DatabaseVersion())
             session.add(CurrentDisplay(all_photos=False, album=None))
             session.add(Settings())
             session.commit()
