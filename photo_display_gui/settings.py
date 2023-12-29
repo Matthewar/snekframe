@@ -135,6 +135,24 @@ class SettingsWindow:
 
         row += 1
 
+        photo_transition_label = ttk.Label(self._inner_window, text="Photo Transition Time", justify=tk.LEFT, font=FONTS.default)
+        photo_transition_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        photo_transition_controls = ttk.Frame(self._inner_window)
+        photo_transition_controls.grid(row=row, column=RIGHTCOLUMN, pady=5)
+
+        self._decrease_transition_time_button = ttk.Button(photo_transition_controls, text="-", state=self._get_transition_minus_state(), command=self._transition_decrease_callback)
+        self._transition_time = tk.StringVar()
+        self._transition_time_display = ttk.Label(photo_transition_controls, textvariable=self._transition_time)
+        self._increase_transition_time_button = ttk.Button(photo_transition_controls, text="+", state=self._get_transition_plus_state(), command=self._transition_increase_callback)
+
+        self._decrease_transition_time_button.grid(row=0, column=1)
+        self._transition_time_display.grid(row=0, column=2)
+        self._increase_transition_time_button.grid(row=0, column=3)
+        photo_transition_controls.grid_columnconfigure(0, weight=1)
+        photo_transition_controls.grid_columnconfigure(4, weight=1)
+
+        row += 1
+
         photos_info_label = ttk.Label(self._inner_window, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
         photos_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         self._num_photos = tk.IntVar()
@@ -225,6 +243,16 @@ class SettingsWindow:
             return False
 
         return setup_viewed_photos(shuffle=shuffle, album=album)
+
+    def _get_transition_minus_state(self):
+        if not self._photo_selection.photos_selected or not self._shuffle.get():
+            return "disabled"
+        else:
+            return "!disabled"
+
+    def _get_transition_plus_state
+    def _transition_decrease_callback
+    def _transition_increase_callback
 
     def _update_num_photos(self):
         with RUNTIME_SESSION() as session:
