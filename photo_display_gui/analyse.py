@@ -48,8 +48,7 @@ def setup_viewed_photos(shuffle=False, album=None):
             persistent_session.execute(delete(CurrentDisplay))
             return False
         else:
-            updated = persistent_session.execute(select(CurrentDisplay.id)).one_or_none()
-            persistent_session.execute(update(CurrentDisplay).values(album=album, all_photos=album is None))
+            updated = persistent_session.execute(update(CurrentDisplay).values(album=album, all_photos=album is None).returning(CurrentDisplay.id)).one_or_none()
             if updated is None:
                 persistent_session.add(CurrentDisplay(album=album, all_photos=album is None))
 
@@ -85,10 +84,8 @@ def load_photo_files():
                     if is_file_image(direntry.path):
                         num_photos += 1
                         persistent_session.add(PhotoList(filename=direntry.name, album=album))
-                        found_image = runtime_session.execute(select(ExistingFiles.id).where(ExistingFiles.photo_path == direntry.path)).first()
-                        runtime_session.execute(
-                            update(ExistingFiles).where(ExistingFiles.photo_path == direntry.path).values(found=True)
-                        )
+                        found_image = runtime_session.execute(
+                            update(ExistingFiles).where(ExistingFiles.photo_path == direntry.path).values(found=True).returning(ExistingFiles.id)).first()
                         if found_image is None:
                             logging.info("Found new image '%s' in album '%s'", direntry.name, album)
                         else:
