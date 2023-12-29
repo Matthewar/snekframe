@@ -15,6 +15,60 @@ import tkinter.ttk as ttk
 
 from sqlalchemy.sql.expression import func, select, update, delete
 
+class SettingsContainer:
+    """Runtime Accessible Settings"""
+    def __init__(self):
+        with PERSISTENT_SESSION() as session:
+            result = session.scalars(
+                select(Settings).limit(1)
+            ).one_or_none()
+
+        if result is None:
+            raise Exception("No settings discovered")
+
+        cached_settings = ("shuffle_photos", "sleep_start_time", "sleep_end_time", "photo_change_time")
+        self._settings = {setting: getattr(result, setting) for setting in cached_settings}
+
+    def __setattr__(self, key, value):
+        update_kwargs = {}
+
+        if key == "shuffle_photos":
+            is not isinstance(value, bool):
+                raise TypeError("shuffle_photos must be a boolean")
+            self._settings[key] = value
+            update_kwargs[key] = value
+        elif key == "photo_change_time":
+            if isinstance(value, int):
+                delay = value
+            elif isinstance(value, datetime.timedelta):
+                delay = int(value.total_seconds())
+                if delay != int(math.ceil(value.total_seconds())):
+                    raise Exception("Photo change time cannot be less than seconds granularity")
+            else:
+                raise Exception("Photo change time must be integer or timedelta")
+            self._settings[key] = delay
+            update_kwargs[key] = delay
+        elif key in ("sleep_start_time", "sleep_end_time"):
+            if value is not None or not isinstance(value, datetime.time):
+                raise Exception("Sleep time must be time type")
+            self._settings[key] = value
+            update_kwargs[key] = value
+        else:
+            object.__setattr__(self, key, value)
+            return
+
+        with PERSISTENT_SESSION() as session:
+            session.execute(
+                update(Settings).values(**update_kwargs)
+            )
+            session.commit()
+
+    def __getattr__(self, key):
+        try:
+            return self._settings[key]
+        except KeyError:
+            return object.__getattr__(self, key)
+
 class ShutdownWindow:
     def __init__(self, parent, firstrow=0, firstcolumn=0, grid_pady=5):
         self._countdown_id = None
