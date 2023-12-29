@@ -100,9 +100,11 @@ sudo chown root:root /etc/sudoers.d/photoframe
 ## Setup Program
 
 ### Install Dependencies
+This only supports Python 3.10+ (`UPDATE..RETURNING` is only supported in SQLite 3.35.0+).
+
 ```bash
+# Required for GUI
 sudo apt install python3-tk
-sudo apt install jq
 ```
 
 ### Misc:
