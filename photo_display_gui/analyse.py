@@ -85,7 +85,8 @@ def load_photo_files():
                         num_photos += 1
                         persistent_session.add(PhotoList(filename=direntry.name, album=album))
                         found_image = runtime_session.execute(
-                            update(ExistingFiles).where(ExistingFiles.photo_path == direntry.path).values(found=True).returning(ExistingFiles.id)).first()
+                            update(ExistingFiles).where(ExistingFiles.photo_path == direntry.path).values(found=True).returning(ExistingFiles.id)
+                        ).first()
                         if found_image is None:
                             logging.info("Found new image '%s' in album '%s'", direntry.name, album)
                         else:
