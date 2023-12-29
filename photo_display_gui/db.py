@@ -17,8 +17,8 @@ class DatabaseVersion(PersistentBase):
     __tablename__ = "application_version"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    version: Mapped[str] = mapped_column(String(16))
-    # minor/major
+    major: Mapped[int] = mapped_column(insert_default=0)
+    minor: Mapped[int] = mapped_column(insert_default=0)
 
 class CurrentDisplay(PersistentBase):
     """Currently Displayed Album"""

@@ -91,7 +91,7 @@ class MainWindow:
         SharedBase.metadata.create_all(PERSISTENT_ENGINE)
         with PERSISTENT_SESSION() as session:
             # TODO: Add defaults to ORM?
-            session.add(DatabaseVersion(version="0.0.1"))
+            session.add(DatabaseVersion())
             session.add(CurrentDisplay(all_photos=False, album=None))
             session.add(Settings(shuffle_photos=False, sleep_start_time=None, sleep_end_time=None, photo_change_time=5))
             session.commit()
