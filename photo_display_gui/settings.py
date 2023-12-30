@@ -1,5 +1,6 @@
 """Settings page"""
 
+import bisect
 import datetime
 import math
 import subprocess
@@ -219,6 +220,7 @@ class SettingsWindow:
 
         self._decrease_transition_time_button = ttk.Button(photo_transition_controls, text="-", state=self._get_transition_minus_state(), command=self._transition_decrease_callback)
         self._transition_time = tk.StringVar()
+        self._set_transition_time_string()
         self._transition_time_display = ttk.Label(photo_transition_controls, textvariable=self._transition_time)
         self._increase_transition_time_button = ttk.Button(photo_transition_controls, text="+", state=self._get_transition_plus_state(), command=self._transition_increase_callback)
 
@@ -316,15 +318,71 @@ class SettingsWindow:
 
         return setup_viewed_photos(shuffle=shuffle, album=album)
 
+    _TRANSITION_TIMES = (
+        datetime.timedelta(seconds=10),
+        datetime.timedelta(seconds=15),
+        datetime.timedelta(seconds=30),
+        datetime.timedelta(minutes=1),
+        datetime.timedelta(minutes=2),
+        datetime.timedelta(minutes=5),
+        datetime.timedelta(minutes=10),
+        datetime.timedelta(minutes=15),
+        datetime.timedelta(minutes=30),
+        datetime.timedelta(hours=1),
+        datetime.timedelta(hours=2),
+    )
+
     def _get_transition_minus_state(self):
-        if not self._photo_selection.photos_selected or not self._shuffle.get():
+        if self._settings_selection.photo_change_time <= self._TRANSITION_TIMES[0]:
             return "disabled"
         else:
             return "!disabled"
 
-    def _get_transition_plus_state
-    def _transition_decrease_callback
-    def _transition_increase_callback
+    def _get_transition_plus_state(self):
+        if self._settings_selection.photo_change_time >= self._TRANSITION_TIMES[-1]:
+            return "disabled"
+        else:
+            return "!disabled"
+
+    def _set_transition_time_string(self):
+        seconds = self._settings_selection.photo_change_time.total_seconds()
+        info = []
+        hours = int(seconds / 3600)
+        if hours == 1:
+            info.append("1 hour")
+        elif hours > 1:
+            info.append(f"{hours} hours")
+        seconds = seconds % 3600
+        minutes = int(seconds / 60)
+        if minutes == 1:
+            info.append("1 minute")
+        elif minutes > 1:
+            info.append(f"{minutes} minutes")
+        seconds = seconds % 60
+        if seconds == 1:
+            info.append("1 second")
+        elif seconds > 1:
+            info.append(f"{seconds} seconds")
+
+        self._transition_time.set(", ".join(info))
+
+    def _transition_decrease_callback(self):
+        position = bisect.bisect_left(self._TRANSITION_TIMES, self._settings_selection.photo_change_time)
+        if position > 0:
+            position -= 1
+            self._settings_selection.photo_change_time = self._TRANSITION_TIMES[position]
+            self._set_transition_time_string()
+        self._decrease_transition_time_button.state([self._get_transition_minus_state()])
+        self._increase_transition_time_button.state([self._get_transition_plus_state()])
+
+    def _transition_increase_callback(self):
+        position = bisect.bisect_right(self._TRANSITION_TIMES, self._settings_selection.photo_change_time)
+        if position < (len(self._TRANSITION_TIMES) - 1):
+            position += 1
+            self._settings_selection.photo_change_time = self._TRANSITION_TIMES[position]
+            self._set_transition_time_string()
+        self._decrease_transition_time_button.state([self._get_transition_minus_state()])
+        self._increase_transition_time_button.state([self._get_transition_plus_state()])
 
     def _update_num_photos(self):
         with RUNTIME_SESSION() as session:
