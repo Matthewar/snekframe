@@ -176,16 +176,12 @@ class ShutdownWindow:
         return 2
 
 class SettingsWindow:
-    def __init__(self, frame, selection, destroy_display_window): # TODO: Previous screen if possible
+    def __init__(self, frame, selection, settings, destroy_display_window): # TODO: Previous screen if possible
         self._main_window = frame
         self._inner_window = ttk.Frame(self._main_window) # TODO: width
         self._photo_selection = selection
+        self._settings_selection = settings
         self._destroy_display_window = destroy_display_window
-
-        with PERSISTENT_SESSION() as session:
-            all_settings = session.scalars(
-                select(Settings).limit(1)
-            ).one_or_none()
 
         row = 0
         LEFTCOLUMN = 1
@@ -203,7 +199,7 @@ class SettingsWindow:
         shuffle_photos_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         # TODO: If no photos, disable all shuffling?
-        self._shuffle = tk.BooleanVar(value=all_settings.shuffle_photos)
+        self._shuffle = tk.BooleanVar(value=self._settings_selection.shuffle_photos)
         self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False)
         self._shuffle_off_button = tk.Radiobutton(shuffle_photos_frame, text="Off", state=self._get_shuffle_off_state(), variable=self._shuffle, value=False, command=self._shuffle_button_callback, indicatoron=False)
         self._shuffle_trigger_button = ttk.Button(shuffle_photos_frame, text="Reshuffle", state=self._get_shuffle_trigger_state(), command=self._trigger_shuffle)
@@ -300,13 +296,8 @@ class SettingsWindow:
         self._shuffle_off_button.state([self._get_shuffle_off_state()])
         self._shuffle_trigger_button.state([self._get_shuffle_trigger_state()])
 
-        with PERSISTENT_SESSION() as session:
-            result = session.execute(
-                update(Settings).where(Settings.shuffle_photos != self._shuffle.get()).values(shuffle_photos=self._shuffle.get()).returning(Settings.id)
-            ).one_or_none()
-            session.commit()
-
-        if result is not None:
+        if self._shuffle.get() != self._settings_selection.shuffle_photos:
+            self._settings_selection.shuffle_photos = self._shuffle.get()
             self._reorder_photos(shuffle=self._shuffle.get())
 
     def _trigger_shuffle(self): # TODO: Add counter/stop repeated calls?

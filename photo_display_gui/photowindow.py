@@ -16,9 +16,9 @@ import PIL.ImageTk
 
 from .analyse import load_photo_files, setup_viewed_photos
 from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, TITLE_BAR_COLOUR, FILES_LOCATION, PHOTOS_LOCATION
-from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList, Settings
+from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList
 from .fonts import FONTS
-from .settings import SettingsWindow
+from .settings import SettingsWindow, SettingsContainer
 
 class PhotoTitleBar:
     """Titlebar
@@ -659,6 +659,8 @@ class PhotoWindow:
 
         self._current_window = None
 
+        self._settings = SettingsContainer()
+
         if not self._selection.photos_selected:
             self._open_photo_select_window()
         else:
@@ -705,18 +707,12 @@ class PhotoWindow:
         return self._open_photo_display_window(regenerate=regenerate)
 
     def _setup_viewed_photos(self):
-        with PERSISTENT_SESSION() as persistent_session:
-            settings_result = persistent_session.scalars(
-                select(Settings.shuffle_photos).limit(1)
-            ).one_or_none() # TODO: Handle exception
-            shuffle = settings_result is not None and settings_result
-
         if self._selection.album_selected:
             album = self._selection.album
         else:
             album = None
 
-        return setup_viewed_photos(shuffle=shuffle, album=album)
+        return setup_viewed_photos(shuffle=self._settings.shuffle_photos, album=album)
 
     def _open_photo_display_window(self, regenerate=False):
         # TODO: Regenerate if settings change
@@ -746,7 +742,7 @@ class PhotoWindow:
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
-            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._destroy_photo_window)
+            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._settings, self._destroy_photo_window)
         self._title_bar.show_settings()
         self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
         self._current_window = self.OpenWindow.Settings
