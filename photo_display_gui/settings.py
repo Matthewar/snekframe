@@ -26,48 +26,75 @@ class SettingsContainer:
         if result is None:
             raise Exception("No settings discovered")
 
-        cached_settings = ("shuffle_photos", "sleep_start_time", "sleep_end_time", "photo_change_time")
-        self._settings = {setting: getattr(result, setting) for setting in cached_settings}
+        self._shuffle_photos = result.shuffle_photos
+        self._sleep_start_time = result.sleep_start_time
+        self._sleep_end_time = result.sleep_end_time
+        self._photo_change_time = datetime.timedelta(seconds=result.photo_change_time)
 
-    def __setattr__(self, key, value):
-        update_kwargs = {}
-
-        if key == "shuffle_photos":
-            is not isinstance(value, bool):
-                raise TypeError("shuffle_photos must be a boolean")
-            self._settings[key] = value
-            update_kwargs[key] = value
-        elif key == "photo_change_time":
-            if isinstance(value, int):
-                delay = value
-            elif isinstance(value, datetime.timedelta):
-                delay = int(value.total_seconds())
-                if delay != int(math.ceil(value.total_seconds())):
-                    raise Exception("Photo change time cannot be less than seconds granularity")
-            else:
-                raise Exception("Photo change time must be integer or timedelta")
-            self._settings[key] = delay
-            update_kwargs[key] = delay
-        elif key in ("sleep_start_time", "sleep_end_time"):
-            if value is not None or not isinstance(value, datetime.time):
-                raise Exception("Sleep time must be time type")
-            self._settings[key] = value
-            update_kwargs[key] = value
-        else:
-            object.__setattr__(self, key, value)
-            return
-
+    def _update_settings(self, **update_kwargs):
         with PERSISTENT_SESSION() as session:
             session.execute(
                 update(Settings).values(**update_kwargs)
             )
             session.commit()
 
-    def __getattr__(self, key):
-        try:
-            return self._settings[key]
-        except KeyError:
-            return object.__getattr__(self, key)
+    @property
+    def shuffle_photos(self):
+        """Whether photos viewing order should be shuffled"""
+        return self._shuffle_photos
+
+    @shuffle_photos.setter
+    def shuffle_photos(self, value):
+        if not isinstance(value, bool):
+            raise TypeError("shuffle_photos must be a boolean")
+        self._shuffle_photos = value
+        self._update_settings(shuffle_photos=value)
+
+    @property
+    def sleep_start_time(self):
+        """Time when display sleep starts"""
+        return self._sleep_start_time
+
+    @sleep_start_time.setter
+    def sleep_start_time(self, value):
+        if value is not None and not isinstance(value, datetime.time):
+            raise TypeError("sleep_start_time must be datetime.time")
+        self._sleep_start_time = value
+        self._update_settings(sleep_start_time=value)
+
+    @property
+    def sleep_end_time(self):
+        """Time when display sleep ends"""
+        return self._sleep_end_time
+
+    @sleep_end_time.setter
+    def sleep_end_time(self, value):
+        if value is not None and not isinstance(value, datetime.time):
+            raise TypeError("sleep_end_time must be datetime.time")
+        self._sleep_end_time = value
+        self._update_settings(sleep_end_time=value)
+
+    @property
+    def photo_change_time(self):
+        """Frequency with which photos change"""
+        return self._photo_change_time
+
+    @photo_change_time.setter
+    def photo_change_time(self, value):
+        if isinstance(value, int):
+            int_delay = value
+            time_delay = datetime.timedelta(seconds=value)
+        elif isinstance(value, datetime.timedelta):
+            time_delay = value
+            float_delay = time_delay.total_seconds()
+            int_delay = int(float_delay)
+            if int_delay != int(math.ceil(float_delay)):
+                raise Exception("Photo change time cannot be less than seconds granularity")
+        else:
+            raise TypeError("photo_change_time must be an integer or datetime.delta")
+
+        self._photo_change_time = time_delay
+        self._update_settings(photo_change_time=int_delay)
 
 class ShutdownWindow:
     def __init__(self, parent, firstrow=0, firstcolumn=0, grid_pady=5):
