@@ -315,6 +315,7 @@ class PhotoDisplayWindow:
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._scroll_window.after(10000, self._transition_next_photo)
 
         self._motion = False
@@ -325,6 +326,7 @@ class PhotoDisplayWindow:
     def place(self, **place_kwargs):
         self._pause_transitions = False
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._title_showing = False
         self._window.place(**place_kwargs)
 
@@ -359,6 +361,7 @@ class PhotoDisplayWindow:
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._scroll_window.after(10000, self._transition_next_photo)
 
         self._motion = False
@@ -527,7 +530,15 @@ class PhotoDisplayWindow:
 
     def _transition_next_photo(self):
         if not self._pause_transitions:
-            timedelta = datetime.datetime.now() - self._last_action_time
+            current_time = datetime.datetime.now()
+
+            timedelta = current_time - self._last_transition_time
+            if timedelta < self._settings.photo_change_time:
+                trigger_after_secs = self._settings.photo_change_time - timedelta
+                self._scroll_window.after(int(trigger_after_secs.total_seconds() * 1000), self._transition_next_photo)
+                return
+
+            timedelta = current_time - self._last_action_time
             if timedelta < datetime.timedelta(seconds=10):
                 seconds_since_event = timedelta.total_seconds()
                 if seconds_since_event < 9.0:
