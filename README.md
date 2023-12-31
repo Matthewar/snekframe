@@ -97,6 +97,20 @@ sudo cp install/sudoer.photoframe /etc/sudoers.d/photoframe
 sudo chown root:root /etc/sudoers.d/photoframe
 ```
 
+### 6. Setup Login User
+Login user that the GUI runs in.
+
+```bash
+sudo useradd --comment "Auto login user for the photo display program" --create-home photologin
+sudo passwd photologin
+sudo raspi-config nonint do_boot_behaviour B4
+```
+
+To change the auto login user to `photologin` modify `/etc/lightdm/lightdm.conf` (taken from `raspi-config` script).
+```conf
+autologin-user=photologin
+```
+
 ## Setup Program
 
 ### Install Dependencies
