@@ -104,6 +104,7 @@ Login user that the GUI runs in.
 sudo useradd --comment "Auto login user for the photo display program" --create-home photologin
 sudo passwd photologin
 sudo raspi-config nonint do_boot_behaviour B4
+sudo raspi-config nonint do_blanking 1
 ```
 
 Modify the `/etc/lightdm/lightdm.conf`:
