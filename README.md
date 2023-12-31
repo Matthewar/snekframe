@@ -106,10 +106,12 @@ sudo passwd photologin
 sudo raspi-config nonint do_boot_behaviour B4
 ```
 
-To change the auto login user to `photologin` modify `/etc/lightdm/lightdm.conf` (taken from `raspi-config` script).
-```conf
-autologin-user=photologin
-```
+Modify the `/etc/lightdm/lightdm.conf`:
+- `autologin-user=photologin`
+  - Change auto login user to `photologin`
+  - (Taken from `raspi-config` script)
+- `xserver-command=X -nocursor`
+  - Disable cursor
 
 ## Setup Program
 
