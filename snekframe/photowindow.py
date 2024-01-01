@@ -16,9 +16,9 @@ import PIL.ImageTk
 
 from .analyse import load_photo_files, setup_viewed_photos
 from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, TITLE_BAR_COLOUR, FILES_LOCATION, PHOTOS_LOCATION
-from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList, Settings
+from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList
 from .fonts import FONTS
-from .settings import SettingsWindow
+from .settings import SettingsWindow, SettingsContainer
 
 class PhotoTitleBar:
     """Titlebar
@@ -291,8 +291,9 @@ class PhotoDisplayWindow:
 
     # TODO: Keep title open if clicking on it
 
-    def __init__(self, frame, show_title, hide_title):
+    def __init__(self, frame, settings, show_title, hide_title):
         self._window = frame # Visible frame
+        self._settings = settings
         self._show_title = show_title
         self._hide_title = hide_title
 
@@ -308,6 +309,7 @@ class PhotoDisplayWindow:
         self._photo_list = []
         self._current_photo_position = None
 
+        self._start_x = None
         self._cursor_position_x = None
         self._cursor_position_y = None
 
@@ -315,6 +317,7 @@ class PhotoDisplayWindow:
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._scroll_window.after(10000, self._transition_next_photo)
 
         self._motion = False
@@ -325,6 +328,7 @@ class PhotoDisplayWindow:
     def place(self, **place_kwargs):
         self._pause_transitions = False
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._title_showing = False
         self._window.place(**place_kwargs)
 
@@ -359,6 +363,7 @@ class PhotoDisplayWindow:
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
+        self._last_transition_time = datetime.datetime.now()
         self._scroll_window.after(10000, self._transition_next_photo)
 
         self._motion = False
@@ -444,14 +449,19 @@ class PhotoDisplayWindow:
         self._pause_transitions = True
         self._motion = False
         self._cursor_position_x = event.x
+        self._cursor_position_y = event.y
         self._start_x = self._scroll_window.winfo_x()
         #self._cursor_position_y = event.y
 
     def _on_drag_motion(self, event):
+        if self._cursor_position_x is None:
+            # On Raspbian touchscreen control a touch triggers a drag motion before a click
+            return
         x = self._scroll_window.winfo_x() - self._cursor_position_x + event.x
         #y = self._scroll_window.winfo_y() - self._cursor_position_y + event.y
         self._scroll_window.place(x=x, y=self._scroll_window.winfo_y())
-        self._motion = True
+        if all((not self._motion, self._cursor_position_x != event.x or self._cursor_position_y != event.y)):
+            self._motion = True
 
     def _on_drag_stop(self, event):
         #         | Image 1 | Image 2 | Image 3
@@ -527,7 +537,15 @@ class PhotoDisplayWindow:
 
     def _transition_next_photo(self):
         if not self._pause_transitions:
-            timedelta = datetime.datetime.now() - self._last_action_time
+            current_time = datetime.datetime.now()
+
+            timedelta = current_time - self._last_transition_time
+            if timedelta < self._settings.photo_change_time:
+                trigger_after_secs = self._settings.photo_change_time - timedelta
+                self._scroll_window.after(int(trigger_after_secs.total_seconds() * 1000), self._transition_next_photo)
+                return
+
+            timedelta = current_time - self._last_action_time
             if timedelta < datetime.timedelta(seconds=10):
                 seconds_since_event = timedelta.total_seconds()
                 if seconds_since_event < 9.0:
@@ -637,6 +655,7 @@ class PhotoWindow:
         load_photo_files()
 
         self._selection = self.SelectedPhotos()
+        self._settings = SettingsContainer()
 
         with PERSISTENT_SESSION() as persistent_session:
             display_info_result = persistent_session.scalars(
@@ -705,25 +724,19 @@ class PhotoWindow:
         return self._open_photo_display_window(regenerate=regenerate)
 
     def _setup_viewed_photos(self):
-        with PERSISTENT_SESSION() as persistent_session:
-            settings_result = persistent_session.scalars(
-                select(Settings.shuffle_photos).limit(1)
-            ).one_or_none() # TODO: Handle exception
-            shuffle = settings_result is not None and settings_result
-
         if self._selection.album_selected:
             album = self._selection.album
         else:
             album = None
 
-        return setup_viewed_photos(shuffle=shuffle, album=album)
+        return setup_viewed_photos(shuffle=self._settings.shuffle_photos, album=album)
 
     def _open_photo_display_window(self, regenerate=False):
         # TODO: Regenerate if settings change
         self._close_current_window()
 
         if self._display_window is None:
-            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._title_bar.show_photo_title, self._title_bar.hide_photo_title)
+            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._settings, self._title_bar.show_photo_title, self._title_bar.hide_photo_title)
         elif regenerate:
             self._display_window.regenerate_window()
 
@@ -746,7 +759,7 @@ class PhotoWindow:
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
-            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._destroy_photo_window)
+            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._settings, self._destroy_photo_window)
         self._title_bar.show_settings()
         self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
         self._current_window = self.OpenWindow.Settings

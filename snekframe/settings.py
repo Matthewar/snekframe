@@ -1,5 +1,6 @@
 """Settings page"""
 
+import bisect
 import datetime
 import math
 import subprocess
@@ -15,11 +16,86 @@ import tkinter.ttk as ttk
 
 from sqlalchemy.sql.expression import func, select, update, delete
 
-# [General]
-# rotation = landscape
-# [WiFi]
-# ssid
-# password
+class SettingsContainer:
+    """Runtime Accessible Settings"""
+    def __init__(self):
+        with PERSISTENT_SESSION() as session:
+            result = session.scalars(
+                select(Settings).limit(1)
+            ).one_or_none()
+
+        if result is None:
+            raise Exception("No settings discovered")
+
+        self._shuffle_photos = result.shuffle_photos
+        self._sleep_start_time = result.sleep_start_time
+        self._sleep_end_time = result.sleep_end_time
+        self._photo_change_time = datetime.timedelta(seconds=result.photo_change_time)
+
+    def _update_settings(self, **update_kwargs):
+        with PERSISTENT_SESSION() as session:
+            session.execute(
+                update(Settings).values(**update_kwargs)
+            )
+            session.commit()
+
+    @property
+    def shuffle_photos(self):
+        """Whether photos viewing order should be shuffled"""
+        return self._shuffle_photos
+
+    @shuffle_photos.setter
+    def shuffle_photos(self, value):
+        if not isinstance(value, bool):
+            raise TypeError("shuffle_photos must be a boolean")
+        self._shuffle_photos = value
+        self._update_settings(shuffle_photos=value)
+
+    @property
+    def sleep_start_time(self):
+        """Time when display sleep starts"""
+        return self._sleep_start_time
+
+    @sleep_start_time.setter
+    def sleep_start_time(self, value):
+        if value is not None and not isinstance(value, datetime.time):
+            raise TypeError("sleep_start_time must be datetime.time")
+        self._sleep_start_time = value
+        self._update_settings(sleep_start_time=value)
+
+    @property
+    def sleep_end_time(self):
+        """Time when display sleep ends"""
+        return self._sleep_end_time
+
+    @sleep_end_time.setter
+    def sleep_end_time(self, value):
+        if value is not None and not isinstance(value, datetime.time):
+            raise TypeError("sleep_end_time must be datetime.time")
+        self._sleep_end_time = value
+        self._update_settings(sleep_end_time=value)
+
+    @property
+    def photo_change_time(self):
+        """Frequency with which photos change"""
+        return self._photo_change_time
+
+    @photo_change_time.setter
+    def photo_change_time(self, value):
+        if isinstance(value, int):
+            int_delay = value
+            time_delay = datetime.timedelta(seconds=value)
+        elif isinstance(value, datetime.timedelta):
+            time_delay = value
+            float_delay = time_delay.total_seconds()
+            int_delay = int(float_delay)
+            if int_delay != int(math.ceil(float_delay)):
+                raise Exception("Photo change time cannot be less than seconds granularity")
+        else:
+            raise TypeError("photo_change_time must be an integer or datetime.delta")
+
+        self._photo_change_time = time_delay
+        self._update_settings(photo_change_time=int_delay)
 
 class ShutdownWindow:
     def __init__(self, parent, firstrow=0, firstcolumn=0, grid_pady=5):
@@ -96,29 +172,35 @@ class ShutdownWindow:
         self._info_label.grid_remove()
         self._cancel_button.grid_remove()
 
+    @property
+    def rows(self):
+        return 2
+
 class SettingsWindow:
-    def __init__(self, frame, selection, destroy_display_window): # TODO: Previous screen if possible
+    def __init__(self, frame, selection, settings, destroy_display_window): # TODO: Previous screen if possible
         self._main_window = frame
         self._inner_window = ttk.Frame(self._main_window) # TODO: width
         self._photo_selection = selection
+        self._settings_selection = settings
         self._destroy_display_window = destroy_display_window
 
-        with PERSISTENT_SESSION() as session:
-            all_settings = session.scalars(
-                select(Settings).limit(1)
-            ).one_or_none()
+        row = 0
+        LEFTCOLUMN = 1
+        RIGHTCOLUMN = LEFTCOLUMN + 1
+        COLUMNSPAN = RIGHTCOLUMN - LEFTCOLUMN + 1
 
         photo_settings_title = ttk.Label(self._inner_window, text="Photo Settings", justify=tk.CENTER, font=FONTS.subtitle)
-        photo_settings_title.grid(row=0, column=1, pady=(5, 10), columnspan=2)
+        photo_settings_title.grid(row=row, column=LEFTCOLUMN, pady=(5, 10), columnspan=COLUMNSPAN)
+        row += 1
 
         shuffle_photos_label = ttk.Label(self._inner_window, text="Shuffle:", justify=tk.LEFT, font=FONTS.default)
-        shuffle_photos_label.grid(row=1, column=1, pady=5)
+        shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         shuffle_photos_frame = ttk.Frame(self._inner_window)
-        shuffle_photos_frame.grid(row=1, column=2, pady=5)
+        shuffle_photos_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         # TODO: If no photos, disable all shuffling?
-        self._shuffle = tk.BooleanVar(value=all_settings.shuffle_photos)
+        self._shuffle = tk.BooleanVar(value=self._settings_selection.shuffle_photos)
         self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False)
         self._shuffle_off_button = tk.Radiobutton(shuffle_photos_frame, text="Off", state=self._get_shuffle_off_state(), variable=self._shuffle, value=False, command=self._shuffle_button_callback, indicatoron=False)
         self._shuffle_trigger_button = ttk.Button(shuffle_photos_frame, text="Reshuffle", state=self._get_shuffle_trigger_state(), command=self._trigger_shuffle)
@@ -129,47 +211,74 @@ class SettingsWindow:
         shuffle_photos_frame.grid_columnconfigure(0, weight=1)
         shuffle_photos_frame.grid_columnconfigure(4, weight=1)
 
+        row += 1
+
+        photo_transition_label = ttk.Label(self._inner_window, text="Photo Transition Time", justify=tk.LEFT, font=FONTS.default)
+        photo_transition_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        photo_transition_controls = ttk.Frame(self._inner_window)
+        photo_transition_controls.grid(row=row, column=RIGHTCOLUMN, pady=5)
+
+        self._decrease_transition_time_button = ttk.Button(photo_transition_controls, text="-", state=self._get_transition_minus_state(), command=self._transition_decrease_callback)
+        self._transition_time = tk.StringVar()
+        self._set_transition_time_string()
+        self._transition_time_display = ttk.Label(photo_transition_controls, textvariable=self._transition_time)
+        self._increase_transition_time_button = ttk.Button(photo_transition_controls, text="+", state=self._get_transition_plus_state(), command=self._transition_increase_callback)
+
+        self._decrease_transition_time_button.grid(row=0, column=1)
+        self._transition_time_display.grid(row=0, column=2)
+        self._increase_transition_time_button.grid(row=0, column=3)
+        photo_transition_controls.grid_columnconfigure(0, weight=1)
+        photo_transition_controls.grid_columnconfigure(4, weight=1)
+
+        row += 1
+
         photos_info_label = ttk.Label(self._inner_window, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
-        photos_info_label.grid(row=2, column=1, pady=5)
+        photos_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         self._num_photos = tk.IntVar()
         self._num_photos.set(-1) # TODO: Move to constructor?
         num_photos_label = ttk.Label(self._inner_window, textvariable=self._num_photos, justify=tk.RIGHT, font=FONTS.default)
-        num_photos_label.grid(row=2, column=2, pady=5)
+        num_photos_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         albums_info_label = ttk.Label(self._inner_window, text="Number of Albums:", justify=tk.LEFT, font=FONTS.default)
-        albums_info_label.grid(row=3, column=1, pady=5)
+        albums_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         self._num_albums = tk.IntVar()
         self._num_albums.set(-1) # TODO: Move to constructor?
         num_albums_label = ttk.Label(self._inner_window, textvariable=self._num_albums, justify=tk.RIGHT, font=FONTS.default)
-        num_albums_label.grid(row=3, column=2, pady=5)
+        num_albums_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         self._update_num_photos()
 
         rescan_photos_label = ttk.Label(self._inner_window, text="Rescan:", justify=tk.LEFT, font=FONTS.default)
-        rescan_photos_label.grid(row=4, column=1, pady=5)
+        rescan_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         # TODO: Add loading state
         rescan_photos_button = ttk.Button(self._inner_window, text="Go!", command=self._trigger_rescan)
-        rescan_photos_button.grid(row=4, column=2, pady=5)
+        rescan_photos_button.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
 
         system_settings_title = ttk.Label(self._inner_window, text="System Settings", justify=tk.CENTER, font=FONTS.subtitle)
-        system_settings_title.grid(row=5, column=1, pady=(10, 10), columnspan=2)
+        system_settings_title.grid(row=row, column=LEFTCOLUMN, pady=(10, 10), columnspan=COLUMNSPAN)
+        row += 1
 
         ip_addr_title_label = ttk.Label(self._inner_window, text="IP Address:", justify=tk.LEFT, font=FONTS.default)
-        ip_addr_title_label.grid(row=6, column=1, pady=5)
+        ip_addr_title_label.grid(row=row, column=LEFTCOLUMN, pady=5)
 
         self._ip_addr = tk.StringVar()
         self._ip_addr_info_label = ttk.Label(self._inner_window, textvariable=self._ip_addr, justify=tk.RIGHT, font=FONTS.default)
-        self._ip_addr_info_label.grid(row=6, column=2, pady=5)
+        self._ip_addr_info_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
         # TODO: Add refresh button
         self._get_ip_addr() # TODO: if displayed
+        row += 1
 
         # TODO: Upgrade?
 
-        self._shutdown_window = ShutdownWindow(self._inner_window, firstrow=7, firstcolumn=1, grid_pady=5)
+        self._shutdown_window = ShutdownWindow(self._inner_window, firstrow=row, firstcolumn=LEFTCOLUMN, grid_pady=5)
+        row += self._shutdown_window.rows
 
         self._inner_window.grid_columnconfigure(0, weight=1)
-        self._inner_window.grid_columnconfigure(9, weight=1)
+        self._inner_window.grid_columnconfigure(RIGHTCOLUMN+1, weight=1)
         self._inner_window.place(x=0, y=0, width=WINDOW_WIDTH)
 
     def _get_shuffle_on_state(self):
@@ -185,17 +294,12 @@ class SettingsWindow:
             return "!disabled"
 
     def _shuffle_button_callback(self):
-        self._shuffle_on_button.state([self._get_shuffle_on_state()])
-        self._shuffle_off_button.state([self._get_shuffle_off_state()])
+        self._shuffle_on_button.configure(state=self._get_shuffle_on_state())
+        self._shuffle_off_button.configure(state=self._get_shuffle_off_state())
         self._shuffle_trigger_button.state([self._get_shuffle_trigger_state()])
 
-        with PERSISTENT_SESSION() as session:
-            result = session.execute(
-                update(Settings).where(Settings.shuffle_photos != self._shuffle.get()).values(shuffle_photos=self._shuffle.get()).returning(Settings.id)
-            ).one_or_none()
-            session.commit()
-
-        if result is not None:
+        if self._shuffle.get() != self._settings_selection.shuffle_photos:
+            self._settings_selection.shuffle_photos = self._shuffle.get()
             self._reorder_photos(shuffle=self._shuffle.get())
 
     def _trigger_shuffle(self): # TODO: Add counter/stop repeated calls?
@@ -213,6 +317,71 @@ class SettingsWindow:
             return False
 
         return setup_viewed_photos(shuffle=shuffle, album=album)
+
+    _TRANSITION_TIMES = (
+        datetime.timedelta(seconds=10),
+        datetime.timedelta(seconds=15),
+        datetime.timedelta(seconds=30),
+        datetime.timedelta(minutes=1),
+        datetime.timedelta(minutes=2),
+        datetime.timedelta(minutes=5),
+        datetime.timedelta(minutes=10),
+        datetime.timedelta(minutes=15),
+        datetime.timedelta(minutes=30),
+        datetime.timedelta(hours=1),
+        datetime.timedelta(hours=2),
+    )
+
+    def _get_transition_minus_state(self):
+        if self._settings_selection.photo_change_time <= self._TRANSITION_TIMES[0]:
+            return "disabled"
+        else:
+            return "!disabled"
+
+    def _get_transition_plus_state(self):
+        if self._settings_selection.photo_change_time >= self._TRANSITION_TIMES[-1]:
+            return "disabled"
+        else:
+            return "!disabled"
+
+    def _set_transition_time_string(self):
+        seconds = self._settings_selection.photo_change_time.total_seconds()
+        info = []
+        hours = int(seconds / 3600)
+        if hours == 1:
+            info.append("1 hour")
+        elif hours > 1:
+            info.append(f"{hours} hours")
+        seconds = seconds % 3600
+        minutes = int(seconds / 60)
+        if minutes == 1:
+            info.append("1 minute")
+        elif minutes > 1:
+            info.append(f"{minutes} minutes")
+        seconds = int(seconds % 60)
+        if seconds == 1:
+            info.append("1 second")
+        elif seconds > 1:
+            info.append(f"{seconds} seconds")
+
+        self._transition_time.set(", ".join(info))
+
+    def _transition_decrease_callback(self):
+        position = bisect.bisect_left(self._TRANSITION_TIMES, self._settings_selection.photo_change_time)
+        if position > 0:
+            position -= 1
+            self._settings_selection.photo_change_time = self._TRANSITION_TIMES[position]
+            self._set_transition_time_string()
+        self._decrease_transition_time_button.state([self._get_transition_minus_state()])
+        self._increase_transition_time_button.state([self._get_transition_plus_state()])
+
+    def _transition_increase_callback(self):
+        position = bisect.bisect_right(self._TRANSITION_TIMES, self._settings_selection.photo_change_time)
+        if position < len(self._TRANSITION_TIMES):
+            self._settings_selection.photo_change_time = self._TRANSITION_TIMES[position]
+            self._set_transition_time_string()
+        self._decrease_transition_time_button.state([self._get_transition_minus_state()])
+        self._increase_transition_time_button.state([self._get_transition_plus_state()])
 
     def _update_num_photos(self):
         with RUNTIME_SESSION() as session:
@@ -233,7 +402,7 @@ class SettingsWindow:
         if not found_photos:
             self._photo_selection.set_no_selection()
         self._shuffle_trigger_button.state([self._get_shuffle_trigger_state()])
-        self._destroy_display_window()
+        self._destroy_display_window() # TODO: Redraw photo select window
 
     def _get_ip_addr(self):
         found_ip = False

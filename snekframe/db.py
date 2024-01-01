@@ -33,11 +33,11 @@ class Settings(PersistentBase):
     __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    shuffle_photos: Mapped[bool]
+    shuffle_photos: Mapped[bool] = mapped_column(insert_default=False)
     # TODO:
-    sleep_start_time: Mapped[Optional[datetime.time]] = mapped_column(Time(), nullable=True)
-    sleep_end_time: Mapped[Optional[datetime.time]] = mapped_column(Time(), nullable=True)
-    photo_change_time: Mapped[int]
+    sleep_start_time: Mapped[Optional[datetime.time]] = mapped_column(Time(), nullable=True, insert_default=None)
+    sleep_end_time: Mapped[Optional[datetime.time]] = mapped_column(Time(), nullable=True, insert_default=None)
+    photo_change_time: Mapped[int] = mapped_column(insert_default=10)
 
 PERSISTENT_ENGINE = create_engine("sqlite:///{}".format(os.path.join(params.FILES_LOCATION, params.DATABASE_NAME)))
 PERSISTENT_SESSION = sessionmaker(PERSISTENT_ENGINE)
