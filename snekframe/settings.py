@@ -358,7 +358,7 @@ class SettingsWindow:
             info.append("1 minute")
         elif minutes > 1:
             info.append(f"{minutes} minutes")
-        seconds = seconds % 60
+        seconds = int(seconds % 60)
         if seconds == 1:
             info.append("1 second")
         elif seconds > 1:
