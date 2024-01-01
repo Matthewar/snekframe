@@ -20,7 +20,6 @@ sudo ufw enable
 Can also login to WiFi at this stage if already have network credentials (but can also do this later).
 Use `sudo raspi-config`.
 
-### 3. Setup Login User
 Raspberry Pi by default makes the first user login automatically and doesn't require password for sudo.
 To fix this, delete default sudoers no password file:
 ```bash
@@ -30,7 +29,7 @@ sudo rm /etc/sudoers.d/010_pi-nopasswd
 Can also comment out `@includedir /etc/sudoers.d` in `/etc/sudoers` if desired (can use `visudo` to edit).
 This shouldn't be done if using the sudoers permission file in the next step.
 
-### 4. Setup Automated Upgrades
+### 3. Setup Automated Upgrades
 Using `unattended-upgrades` can automatically upgrade the device with security upgrades.
 
 ```bash
@@ -81,7 +80,7 @@ RandomizedDelaySec=30m
 
 Can review this has been successfully applied with `sudo systemctl list-timers apt-daily-upgrade`.
 
-### 5. Setup Program User
+### 4. Setup Program User
 System user (cannot be logged into) which stores the relevant files and is used to run the program.
 
 ```bash
@@ -97,7 +96,7 @@ sudo cp install/sudoer.photoframe /etc/sudoers.d/photoframe
 sudo chown root:root /etc/sudoers.d/photoframe
 ```
 
-### 6. Setup Login User
+### 5. Setup Login User
 Login user that the GUI runs in.
 
 ```bash
