@@ -294,8 +294,8 @@ class SettingsWindow:
             return "!disabled"
 
     def _shuffle_button_callback(self):
-        self._shuffle_on_button.state([self._get_shuffle_on_state()])
-        self._shuffle_off_button.state([self._get_shuffle_off_state()])
+        self._shuffle_on_button.configure(state=self._get_shuffle_on_state())
+        self._shuffle_off_button.configure(state=self._get_shuffle_off_state())
         self._shuffle_trigger_button.state([self._get_shuffle_trigger_state()])
 
         if self._shuffle.get() != self._settings_selection.shuffle_photos:
