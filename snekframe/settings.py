@@ -377,8 +377,7 @@ class SettingsWindow:
 
     def _transition_increase_callback(self):
         position = bisect.bisect_right(self._TRANSITION_TIMES, self._settings_selection.photo_change_time)
-        if position < (len(self._TRANSITION_TIMES) - 1):
-            position += 1
+        if position < len(self._TRANSITION_TIMES):
             self._settings_selection.photo_change_time = self._TRANSITION_TIMES[position]
             self._set_transition_time_string()
         self._decrease_transition_time_button.state([self._get_transition_minus_state()])
