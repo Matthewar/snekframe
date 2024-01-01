@@ -1,4 +1,5 @@
-# Photo Display for Raspberry Pi
+# Snekframe
+Python powered digital photo frame software (for Raspberry Pi).
 
 ## Setup OS
 
