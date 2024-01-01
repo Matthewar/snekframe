@@ -82,34 +82,26 @@ RandomizedDelaySec=30m
 Can review this has been successfully applied with `sudo systemctl list-timers apt-daily-upgrade`.
 
 ### 4. Setup Program User
-System user (cannot be logged into) which stores the relevant files and is used to run the program.
+User with autologin, this stores relevant files and is used to run the program.
 
 ```bash
-sudo useradd --system --comment "User for the photo display program" --no-create-home photoframe
-sudo mkdir -p /var/photoframe
-sudo chown photoframe:photoframe /var/photoframe
-sudo chmod a-rwx,g+rx,u+rwx /var/photoframe
-```
-
-Install the sudoers file to allow the `photoframe` user to perform operations like shutdown and reboot.
-```bash
-sudo cp install/sudoer.photoframe /etc/sudoers.d/photoframe
-sudo chown root:root /etc/sudoers.d/photoframe
-```
-
-### 5. Setup Login User
-Login user that the GUI runs in.
-
-```bash
-sudo useradd --comment "Auto login user for the photo display program" --create-home photologin
-sudo passwd photologin
+sudo useradd --comment "User for the photo display program" --create-home snekframe
+sudo passwd snekframe
+# Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4
+# Disable screen sleeping
 sudo raspi-config nonint do_blanking 1
 ```
 
+Install the sudoers file to allow the `snekframe` user to perform operations like shutdown and reboot.
+```bash
+sudo cp install/sudoer.snekframe /etc/sudoers.d/snekframe
+sudo chown root:root /etc/sudoers.d/snekframe
+```
+
 Modify the `/etc/lightdm/lightdm.conf`:
-- `autologin-user=photologin`
-  - Change auto login user to `photologin`
+- `autologin-user=snekframe`
+  - Change auto login user to `snekframe`
   - (Taken from `raspi-config` script)
 - `xserver-command=X -nocursor`
   - Disable cursor

@@ -1,2 +1,0 @@
-photoframe ALL=(ALL) NOPASSWD: /sbin/shutdown now
-photoframe ALL=(ALL) NOPASSWD: /sbin/reboot
