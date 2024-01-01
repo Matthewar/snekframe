@@ -5,7 +5,7 @@ import os.path
 WINDOW_WIDTH : int = 1280
 WINDOW_HEIGHT : int = 800
 
-FILES_LOCATION = os.path.expanduser("~/.matt_photo_display")
+FILES_LOCATION = os.path.expanduser("~/.snekframe")
 DATABASE_NAME = "photos.db"
 PHOTOS_LOCATION = "files"
 
