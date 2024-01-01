@@ -291,8 +291,9 @@ class PhotoDisplayWindow:
 
     # TODO: Keep title open if clicking on it
 
-    def __init__(self, frame, show_title, hide_title):
+    def __init__(self, frame, settings, show_title, hide_title):
         self._window = frame # Visible frame
+        self._settings = settings
         self._show_title = show_title
         self._hide_title = hide_title
 
@@ -648,6 +649,7 @@ class PhotoWindow:
         load_photo_files()
 
         self._selection = self.SelectedPhotos()
+        self._settings = SettingsContainer()
 
         with PERSISTENT_SESSION() as persistent_session:
             display_info_result = persistent_session.scalars(
@@ -669,8 +671,6 @@ class PhotoWindow:
         self._settings_window = None
 
         self._current_window = None
-
-        self._settings = SettingsContainer()
 
         if not self._selection.photos_selected:
             self._open_photo_select_window()
@@ -730,7 +730,7 @@ class PhotoWindow:
         self._close_current_window()
 
         if self._display_window is None:
-            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._title_bar.show_photo_title, self._title_bar.hide_photo_title)
+            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._settings, self._title_bar.show_photo_title, self._title_bar.hide_photo_title)
         elif regenerate:
             self._display_window.regenerate_window()
 
