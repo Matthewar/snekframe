@@ -309,6 +309,7 @@ class PhotoDisplayWindow:
         self._photo_list = []
         self._current_photo_position = None
 
+        self._start_x = None
         self._cursor_position_x = None
         self._cursor_position_y = None
 
@@ -448,14 +449,19 @@ class PhotoDisplayWindow:
         self._pause_transitions = True
         self._motion = False
         self._cursor_position_x = event.x
+        self._cursor_position_y = event.y
         self._start_x = self._scroll_window.winfo_x()
         #self._cursor_position_y = event.y
 
     def _on_drag_motion(self, event):
+        if self._cursor_position_x is None:
+            # On Raspbian touchscreen control a touch triggers a drag motion before a click
+            return
         x = self._scroll_window.winfo_x() - self._cursor_position_x + event.x
         #y = self._scroll_window.winfo_y() - self._cursor_position_y + event.y
         self._scroll_window.place(x=x, y=self._scroll_window.winfo_y())
-        self._motion = True
+        if all((not self._motion, self._cursor_position_x != event.x or self._cursor_position_y != event.y)):
+            self._motion = True
 
     def _on_drag_stop(self, event):
         #         | Image 1 | Image 2 | Image 3
