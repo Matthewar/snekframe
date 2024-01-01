@@ -1,0 +1,2 @@
+snekframe ALL=(ALL) NOPASSWD: /sbin/shutdown now
+snekframe ALL=(ALL) NOPASSWD: /sbin/reboot

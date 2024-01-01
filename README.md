@@ -1,4 +1,5 @@
-# Photo Display for Raspberry Pi
+# Snekframe
+Python powered digital photo frame software (for Raspberry Pi).
 
 ## Setup OS
 
@@ -20,7 +21,6 @@ sudo ufw enable
 Can also login to WiFi at this stage if already have network credentials (but can also do this later).
 Use `sudo raspi-config`.
 
-### 3. Setup Login User
 Raspberry Pi by default makes the first user login automatically and doesn't require password for sudo.
 To fix this, delete default sudoers no password file:
 ```bash
@@ -30,7 +30,7 @@ sudo rm /etc/sudoers.d/010_pi-nopasswd
 Can also comment out `@includedir /etc/sudoers.d` in `/etc/sudoers` if desired (can use `visudo` to edit).
 This shouldn't be done if using the sudoers permission file in the next step.
 
-### 4. Setup Automated Upgrades
+### 3. Setup Automated Upgrades
 Using `unattended-upgrades` can automatically upgrade the device with security upgrades.
 
 ```bash
@@ -81,21 +81,30 @@ RandomizedDelaySec=30m
 
 Can review this has been successfully applied with `sudo systemctl list-timers apt-daily-upgrade`.
 
-### 5. Setup Program User
-System user (cannot be logged into) which stores the relevant files and is used to run the program.
+### 4. Setup Program User
+User with autologin, this stores relevant files and is used to run the program.
 
 ```bash
-sudo useradd --system --comment "User for the photo display program" --no-create-home photoframe
-sudo mkdir -p /var/photoframe
-sudo chown photoframe:photoframe /var/photoframe
-sudo chmod a-rwx,g+rx,u+rwx /var/photoframe
+sudo useradd --comment "User for the photo display program" --create-home snekframe
+sudo passwd snekframe
+# Boot into autologin user (we specify the user to login to below)
+sudo raspi-config nonint do_boot_behaviour B4
+# Disable screen sleeping
+sudo raspi-config nonint do_blanking 1
 ```
 
-Install the sudoers file to allow the `photoframe` user to perform operations like shutdown and reboot.
+Install the sudoers file to allow the `snekframe` user to perform operations like shutdown and reboot.
 ```bash
-sudo cp install/sudoer.photoframe /etc/sudoers.d/photoframe
-sudo chown root:root /etc/sudoers.d/photoframe
+sudo cp install/sudoer.snekframe /etc/sudoers.d/snekframe
+sudo chown root:root /etc/sudoers.d/snekframe
 ```
+
+Modify the `/etc/lightdm/lightdm.conf`:
+- `autologin-user=snekframe`
+  - Change auto login user to `snekframe`
+  - (Taken from `raspi-config` script)
+- `xserver-command=X -nocursor`
+  - Disable cursor
 
 ## Setup Program
 
