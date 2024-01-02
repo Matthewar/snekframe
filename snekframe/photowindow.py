@@ -305,10 +305,6 @@ class PhotoDisplayWindow:
         self._image_centre = None
         self._image_right = None
 
-        # TODO: Unused
-        self._photo_list = []
-        self._current_photo_position = None
-
         self._start_x = None
         self._cursor_position_x = None
         self._cursor_position_y = None
