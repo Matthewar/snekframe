@@ -5,6 +5,7 @@ import datetime
 from enum import Enum, auto
 import logging
 import os.path
+import time
 
 import sqlalchemy
 from sqlalchemy.sql.expression import func, select
@@ -297,30 +298,24 @@ class PhotoDisplayWindow:
         self._show_title = show_title
         self._hide_title = hide_title
 
-        self._scroll_window = ttk.Frame(master=self._window, width=WINDOW_WIDTH*self._NUM_PHOTOS_LOADED, height=WINDOW_HEIGHT, style="DisplayWindow.TFrame")
-        self._photo_left = None
-        self._photo_centre = None
-        self._photo_right = None
+        self._inner_window = ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="DisplayWindow.TFrame") # TODO: Unnecessary layer?
+        self._photo = None
         self._image_left = None
         self._image_centre = None
         self._image_right = None
-
-        # TODO: Unused
-        self._photo_list = []
-        self._current_photo_position = None
-
-        self._start_x = None
-        self._cursor_position_x = None
-        self._cursor_position_y = None
 
         self._image_ids = deque([None] * 5, maxlen=5)
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
         self._last_transition_time = datetime.datetime.now()
-        self._scroll_window.after(10000, self._transition_next_photo)
+        self._action = None
+        self._action_job = None
+        self._action_timer = None
+        self._inner_window.after(10000, self._transition_next_photo)
 
-        self._motion = False
+        self._remove_title_job = None
+
         self._title_showing = False
 
         self.regenerate_window()
@@ -354,30 +349,19 @@ class PhotoDisplayWindow:
 
     def regenerate_window(self):
         # Can just rearrange
-        if self._photo_left is not None:
-            self._photo_left.destroy()
-        if self._photo_centre is not None:
-            self._photo_centre.destroy()
-        if self._photo_right is not None:
-            self._photo_right.destroy()
+        if self._photo is not None:
+            self._photo.destroy()
 
         self._pause_transitions = True
         self._last_action_time = datetime.datetime.now()
         self._last_transition_time = datetime.datetime.now()
-        self._scroll_window.after(10000, self._transition_next_photo)
+        self._inner_window.after(10000, self._transition_next_photo)
 
-        self._motion = False
         self._title_showing = False
 
-        self._photo_left = ttk.Label(self._scroll_window, text="One", style="Image.DisplayWindow.TLabel")
-        self._photo_centre = ttk.Label(self._scroll_window, text="Two", style="Image.DisplayWindow.TLabel")
-        self._photo_right = ttk.Label(self._scroll_window, text="Three", style="Image.DisplayWindow.TLabel")
-
-        # Replace with equations
-        self._photo_left.place(relx=1.0/6.0, rely=0.5, anchor=tk.CENTER)
-        self._photo_centre.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        self._photo_right.place(relx=5.0/6.0, rely=0.5, anchor=tk.CENTER)
-        self._scroll_window.place(x=-WINDOW_WIDTH, y=0, anchor="nw")
+        self._photo = ttk.Label(self._inner_window, text="There should be a photo here", style="Image.DisplayWindow.TLabel")
+        self._photo.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        self._inner_window.place(x=0, y=0, anchor="nw")
 
         self._image_ids.clear()
         photos = {}
@@ -396,20 +380,63 @@ class PhotoDisplayWindow:
             self._image_ids.append(None)
 
         self._image_left = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[1]])))
-        self._photo_left.configure(image=self._image_left)
-        self._photo_left.image = self._image_left
         self._image_centre = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[2]])))
-        self._photo_centre.configure(image=self._image_centre)
-        self._photo_centre.image = self._image_centre
+        self._photo.configure(image=self._image_centre)
+        self._photo.image = self._image_centre
         self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[3]])))
-        self._photo_right.configure(image=self._image_right)
-        self._photo_right.image = self._image_right
 
-        elements = (self._scroll_window, self._photo_left, self._photo_centre, self._photo_right)
-        for element in elements:
-            element.bind("<Button-1>", self._on_drag_start)
-            element.bind("<B1-Motion>", self._on_drag_motion)
-            element.bind("<ButtonRelease-1>", self._on_drag_stop)
+        self._inner_window.bind("<Button-1>", self._frame_detect_click)
+        self._inner_window.bind("<ButtonRelease-1>", self._frame_detect_release)
+        self._photo.bind("<Button-1>", self._photo_detect_click)
+        self._photo.bind("<ButtonRelease-1>", self._photo_detect_release)
+
+    def _frame_detect_click(self, event):
+        if len(self._image_ids) == 1:
+            return self._menu_click(event)
+
+        if event.x < ((WINDOW_WIDTH / 2) - 50):
+            return self._reverse_image_click(event)
+        elif event.x > ((WINDOW_WIDTH / 2) + 50):
+            return self._forward_image_click(event)
+        else:
+            return self._menu_click(event)
+
+    def _frame_detect_release(self, event):
+        if len(self._image_ids) == 1:
+            return self._menu_release(event)
+
+        if event.x < ((WINDOW_WIDTH / 2) - 50):
+            return self._reverse_image_release(event)
+        elif event.x > ((WINDOW_WIDTH / 2) + 50):
+            return self._forward_image_release(event)
+        else:
+            return self._menu_release(event)
+
+    def _photo_detect_click(self, event):
+        if len(self._image_ids) == 1:
+            return self._menu_click(event)
+
+        x = event.x - (self._photo.winfo_reqwidth() / 2) + (WINDOW_WIDTH / 2)
+
+        if x < ((WINDOW_WIDTH / 2) - 50):
+            return self._reverse_image_click(event)
+        elif x > ((WINDOW_WIDTH / 2) + 50):
+            return self._forward_image_click(event)
+        else:
+            return self._menu_click(event)
+
+    def _photo_detect_release(self, event):
+        if len(self._image_ids) == 1:
+            return self._menu_release(event)
+
+        x = event.x - (self._photo.winfo_reqwidth() / 2) + (WINDOW_WIDTH / 2)
+
+        if x < ((WINDOW_WIDTH / 2) - 50):
+            return self._reverse_image_release(event)
+        elif x > ((WINDOW_WIDTH / 2) + 50):
+            return self._forward_image_release(event)
+        else:
+            return self._menu_release(event)
 
     def _get_forward_image(self):
         forward_query = select(PhotoList)
@@ -445,95 +472,118 @@ class PhotoDisplayWindow:
 
         return prev_image
 
-    def _on_drag_start(self, event):
+    class _ActionType(Enum):
+        Reverse = auto()
+        Forward = auto()
+        Menu = auto()
+
+    def _reverse_image_click(self, event):
+        if self._action_job is not None:
+            self._inner_window.after_cancel(self._action_job)
+            self._action_job = None
         self._pause_transitions = True
-        self._motion = False
-        self._cursor_position_x = event.x
-        self._cursor_position_y = event.y
-        self._start_x = self._scroll_window.winfo_x()
-        #self._cursor_position_y = event.y
 
-    def _on_drag_motion(self, event):
-        if self._cursor_position_x is None:
-            # On Raspbian touchscreen control a touch triggers a drag motion before a click
-            return
-        x = self._scroll_window.winfo_x() - self._cursor_position_x + event.x
-        #y = self._scroll_window.winfo_y() - self._cursor_position_y + event.y
-        self._scroll_window.place(x=x, y=self._scroll_window.winfo_y())
-        if all((not self._motion, self._cursor_position_x != event.x or self._cursor_position_y != event.y)):
-            self._motion = True
-
-    def _on_drag_stop(self, event):
-        #         | Image 1 | Image 2 | Image 3
-        #         |         | Screen  |
-        # | x=-2*WINDOW_WIDTH (Image 3)
-        #         | x=-WINDOW_WIDTH (Image 2)
-        #                   | x = 0 (Image 1)
-        change_x = self._scroll_window.winfo_x() - self._start_x
-        trigger_change_x = WINDOW_WIDTH / 3.0
-        if change_x < (-trigger_change_x):
-            # Shifted right (forward)
-            self._scroll_window.place(x=-2*WINDOW_WIDTH, y=self._scroll_window.winfo_y())
-
-            # Need to adjust images
-            self._photo_centre.configure(image=self._image_right)
-            self._photo_centre.image = self._image_right
-
-            self._photo_left.configure(image=self._image_centre)
-            self._photo_left.image = self._image_centre
-
-            self._image_left = self._image_centre
-            self._image_centre = self._image_right
-
-            self._scroll_window.place(x=-WINDOW_WIDTH, y=self._scroll_window.winfo_y())
-
-            new_image_right_info = self._get_forward_image()
-            self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
-            self._photo_right.configure(image=self._image_right)
-            self._photo_right.image = self._image_right
-        elif change_x > trigger_change_x:
-            # Shifted left (backwards)
-            self._scroll_window.place(x=0, y=self._scroll_window.winfo_y())
-
-            # Need to adjust images
-            self._photo_centre.configure(image=self._image_left)
-            self._photo_centre.image = self._image_left
-
-            self._photo_right.configure(image=self._image_centre)
-            self._photo_right.image = self._image_centre
-
-            self._image_right = self._image_centre
-            self._image_centre = self._image_left
-
-            self._scroll_window.place(x=-WINDOW_WIDTH, y=self._scroll_window.winfo_y())
-
-            new_image_left_info = self._get_reverse_image()
-            self._image_left = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
-            self._photo_left.configure(image=self._image_left)
-            self._photo_left.image = self._image_left
+        if self._action is None:
+            self._action_timer = time.time_ns()
+            self._action = self._ActionType.Reverse
+            self._action_job = self._inner_window.after(500, self._try_complete_action)
+        elif self._action == self._ActionType.Reverse:
+            if (time.time_ns() - self._action_timer) <= 500000000:
+                self._switch_reverse_image()
+            self._action_timer = None
+            self._action = None
         else:
-            self._scroll_window.place(x=-WINDOW_WIDTH, y=self._scroll_window.winfo_y())
+            self._action = None
+            self._action_timer = None
 
-            if not self._motion:
-                if self._title_showing:
-                    self._hide_title()
-                    self._title_showing = False
-                else:
-                    self._show_title()
-                    self._title_showing = True
-                    self._scroll_window.after(3000, self._check_remove_title)
-        #x = self._scroll_window.winfo_x()
-        #if x < (-3*WINDOW_WIDTH/2):
-        #    self._scroll_window.place(x=-2*WINDOW_WIDTH, y=self._scroll_window.winfo_y())
-        #elif x < (-WINDOW_WIDTH/2):
-        #    self._scroll_window.place(x=-WINDOW_WIDTH, y=self._scroll_window.winfo_y())
-        #else:
-        #    self._scroll_window.place(x=0, y=self._scroll_window.winfo_y())
-        self._cursor_position_x = None
-        self._cursor_position_y = None
+        self._last_action_time = datetime.datetime.now()
 
+    def _reverse_image_release(self, event):
         self._pause_transitions = False
         self._last_action_time = datetime.datetime.now()
+
+    def _forward_image_click(self, event):
+        if self._action_job is not None:
+            self._inner_window.after_cancel(self._action_job)
+            self._action_job = None
+        self._pause_transitions = True
+
+        if self._action is None:
+            self._action_timer = time.time_ns()
+            self._action = self._ActionType.Forward
+            self._action_job = self._inner_window.after(500, self._try_complete_action)
+        elif self._action == self._ActionType.Forward:
+            if (time.time_ns() - self._action_timer) <= 500000000:
+                self._switch_forward_image()
+            self._action_timer = None
+            self._action = None
+        else:
+            self._action = None
+            self._action_timer = None
+
+        self._last_action_time = datetime.datetime.now()
+
+    def _forward_image_release(self, event):
+        self._pause_transitions = False
+        self._last_action_time = datetime.datetime.now()
+
+    def _menu_click(self, event):
+        if self._action_job is not None:
+            self._inner_window.after_cancel(self._action_job)
+            self._action_job = None
+        self._pause_transitions = True
+
+        if self._action is None:
+            self._action_timer = time.time_ns()
+            self._action = self._ActionType.Menu
+            self._action_job = self._inner_window.after(500, self._try_complete_action)
+        else:
+            self._action = None
+            self._action_timer = None
+
+        self._last_action_time = datetime.datetime.now()
+
+    def _menu_release(self, event):
+        self._pause_transitions = False
+        self._last_action_time = datetime.datetime.now()
+
+    def _try_complete_action(self):
+        if self._action is None:
+            return
+        if self._title_showing:
+            self._hide_title()
+            self._title_showing = False
+            if self._remove_title_job is not None:
+                self._inner_window.after_cancel(self._remove_title_job)
+                self._remove_title_job = None
+        else:
+            self._show_title()
+            self._title_showing = True
+            self._remove_title_job = self._inner_window.after(3000, self._check_remove_title)
+
+        self._action_timer = None
+        self._action = None
+        self._action_job = None
+
+    def _switch_forward_image(self):
+        self._photo.configure(image=self._image_right)
+        self._photo.image = self._image_right
+
+        self._image_left = self._image_centre
+        self._image_centre = self._image_right
+
+        new_image_right_info = self._get_forward_image()
+        self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
+
+    def _switch_reverse_image(self):
+        self._photo.configure(image=self._image_left)
+        self._photo.image = self._image_left
+
+        self._image_right = self._image_centre
+        self._image_centre = self._image_left
+
+        new_image_left_info = self._get_reverse_image()
+        self._image_left = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
 
     def _transition_next_photo(self):
         if not self._pause_transitions:
@@ -542,32 +592,28 @@ class PhotoDisplayWindow:
             timedelta = current_time - self._last_transition_time
             if timedelta < self._settings.photo_change_time:
                 trigger_after_secs = self._settings.photo_change_time - timedelta
-                self._scroll_window.after(int(trigger_after_secs.total_seconds() * 1000), self._transition_next_photo)
+                self._inner_window.after(int(trigger_after_secs.total_seconds() * 1000), self._transition_next_photo)
                 return
 
             timedelta = current_time - self._last_action_time
             if timedelta < datetime.timedelta(seconds=10):
                 seconds_since_event = timedelta.total_seconds()
                 if seconds_since_event < 9.0:
-                    self._scroll_window.after(int((10-seconds_since_event)*1000), self._transition_next_photo)
+                    self._inner_window.after(int((10-seconds_since_event)*1000), self._transition_next_photo)
                     return
 
-            self._photo_left.configure(image=self._image_centre)
-            self._photo_left.image = self._image_centre
+            self._photo.configure(image=self._image_right)
+            self._photo.image = self._image_right
             self._image_left = self._image_centre
-
-            self._photo_centre.configure(image=self._image_right)
-            self._photo_centre.image = self._image_right
             self._image_centre = self._image_right
 
             image_right_info = self._get_forward_image()
             self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
-            self._photo_right.configure(image=self._image_right)
-            self._photo_right.image = self._image_right
 
-        self._scroll_window.after(10000, self._transition_next_photo)
+        self._inner_window.after(10000, self._transition_next_photo)
 
     def _check_remove_title(self):
+        self._remove_title_job = None
         if not self._title_showing:
             return
         timedelta = datetime.datetime.now() - self._last_action_time
@@ -575,7 +621,7 @@ class PhotoDisplayWindow:
             self._hide_title()
             self._title_showing = False
         else:
-            self._scroll_window.after(int(timedelta.total_seconds()*1000), self._check_remove_title)
+            self._remove_title_job = self._inner_window.after(int(timedelta.total_seconds()*1000), self._check_remove_title)
 
 class PhotoWindow:
     """Photo window is made of 3 photos so they don't have to be loaded while the photos are dragged"""
