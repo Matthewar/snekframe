@@ -14,7 +14,7 @@ class PersistentBase(DeclarativeBase):
 
 class DatabaseVersion(PersistentBase):
     """Version"""
-    __tablename__ = "application_version"
+    __tablename__ = "database_version"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     major: Mapped[int] = mapped_column(insert_default=0)
