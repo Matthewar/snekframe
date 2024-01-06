@@ -484,8 +484,6 @@ class SettingsWindow:
             subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
         subprocess.run(["sudo", "/sbin/reboot"])
 
-    # check version to install python3 -c 'from setuptools import setup; setup()' --version
-
     def _check_upgrade(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
