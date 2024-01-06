@@ -8,7 +8,7 @@ import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 
-from .db import PERSISTENT_ENGINE, PERSISTENT_SESSION, PersistentBase, DatabaseVersion, CurrentDisplay, Settings, SharedBase
+from . import db
 from .fonts import FONTS
 from .styles import STYLES
 from .params import WINDOW_WIDTH, WINDOW_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION, DATABASE_NAME
@@ -46,6 +46,52 @@ class EntryWindow:
         """Remove window"""
         self._window.place_forget()
 
+class VersionWindow:
+    def __init__(self, frame, current_major, current_minor, exit_window_callback):
+        self._window = frame
+        self._exit_window_callback = exit_window_callback
+
+        title_label = ttk.Label(master=self._window, text="Version Change Detected", font=FONTS.title)
+
+        current_version = (current_major, current_minor)
+        program_version = (db.DATABASE_VERSION_MAJOR, db.DATABASE_VERSION_MINOR)
+
+        if program_version < current_version:
+            info_text = "Database version is newer than installed program."
+            upgrade_button = False
+            continue_button = False
+        elif db.DATABASE_VERSION_MAJOR > current_major:
+            info_text = "Database requires updating in order to continue."
+            upgrade_button = True
+            continue_button = False
+        elif db.DATABASE_VERSION_MINOR > current_minor:
+            info_text = "New database version detected, upgrade recommended."
+            upgrade_button = True
+            continue_button = True
+        else:
+            raise Exception("Shouldn't hit this")
+
+        subtitle_label = ttk.Label(master=self._window, text=info_text, fonts=FONTS.subtitle, justify=tk.CENTER)
+        info_label = ttk.Label(master=self._window, text=f"Current Version: {current_major}.{current_minor} - New Version: {db.DATABASE_VERSION_MAJOR}.{db.DATABASE_VERSION_MINOR}", fonts=FONTS.default, justify=tk.CENTER)
+
+        elements = [title_label, subtitle_label, info_label]
+
+        if upgrade_button:
+            elements.append(ttk.Button(master=self._window, text="Upgrade", command=self._trigger_upgrade))
+        if continue_button:
+            elements.append(ttk.Button(master=self._window, text="Continue (without upgrading)", command=exit_window_callback))
+
+    def _trigger_upgrade(self):
+        raise NotImplementedError("Currently on version v0.0, no reason to upgrade")
+
+    def place(self, **place_args):
+        """Place window in parent"""
+        self._window.place(**place_args)
+
+    def place_forget(self):
+        """Remove window"""
+        self._window.place_forget()
+
 class MainWindow:
     """Holds all other windows"""
     def __init__(self):
@@ -74,7 +120,12 @@ class MainWindow:
             #self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="Test.TFrame"), self._close_entrypoint)
             self._windows["entrypoint"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
         else:
-            self._generate_photo_window()
+            database_major, database_minor = db.get_database_version()
+            if database_major != db.DATABASE_VERSION_MAJOR or database_minor != db.DATABASE_VERSION_MINOR:
+                self._windows["upgrade_version"] = VersionWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), database_major, database_minor, self._close_upgrade_window)
+                self._windows["upgrade_version"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+            else:
+                self._generate_photo_window()
 
     def _close_entrypoint(self):
         if "entrypoint" not in self._windows:
@@ -87,18 +138,27 @@ class MainWindow:
             os.mkdir(os.path.join(FILES_LOCATION, PHOTOS_LOCATION))
         except FileExistsError:
             pass
-        PersistentBase.metadata.create_all(PERSISTENT_ENGINE)
-        SharedBase.metadata.create_all(PERSISTENT_ENGINE)
-        with PERSISTENT_SESSION() as session:
+        db.PersistentBase.metadata.create_all(db.PERSISTENT_ENGINE)
+        db.SharedBase.metadata.create_all(db.PERSISTENT_ENGINE)
+        with db.PERSISTENT_SESSION() as session:
             # TODO: Add defaults to ORM?
-            session.add(DatabaseVersion())
-            session.add(CurrentDisplay(all_photos=False, album=None))
-            session.add(Settings())
+            session.add(db.DatabaseVersion())
+            session.add(db.CurrentDisplay(all_photos=False, album=None))
+            session.add(db.Settings())
             session.commit()
 
         self._generate_photo_window()
         self._windows["entrypoint"].place_forget()
         del self._windows["entrypoint"]
+
+    def _close_upgrade_window(self):
+        if "upgrade_version" not in self._windows:
+            logging.error("Tried to close upgrade window when it didn't exist")
+            return
+
+        self._generate_photo_window()
+        self._windows["upgrade_version"].place_forget()
+        del self._windows["upgrade_version"]
 
     def launch(self):
         """Start GUI event loop"""
