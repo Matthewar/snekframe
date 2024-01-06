@@ -85,7 +85,7 @@ Can review this has been successfully applied with `sudo systemctl list-timers a
 User with autologin, this stores relevant files and is used to run the program.
 
 ```bash
-sudo useradd --comment "User for the photo display program" --create-home snekframe
+sudo useradd --comment "Photo display program" --create-home snekframe
 sudo passwd snekframe
 # Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4
