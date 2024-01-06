@@ -18,3 +18,5 @@ GIT_URL = "https://github.com"
 ORGANISATION = "matthewar"
 REPO_NAME = "snekframe"
 REPO_URL = "/".join((GIT_URL, ORGANISATION, REPO_NAME))
+
+VIRTUALENV_NAME = "env"

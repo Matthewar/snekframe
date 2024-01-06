@@ -481,7 +481,7 @@ class SettingsWindow:
             queried_version = query_version.stdout.rstrip('\n').lstrip('v').split('.')[0:2]
             if queried_version != self._upgrade_available:
                 raise Exception("queried version {} doesn't match expected upgrade {}".format(queried_version, self._upgrade_available))
-            subprocess.run(["pip", "install", "--user", "snekframe"], cwd=temp_dir)
+            subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
         subprocess.run(["sudo", "reboot"])
 
     # check version to install python3 -c 'from setuptools import setup; setup()' --version
