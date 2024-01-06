@@ -137,7 +137,7 @@ class ShutdownWindow:
         if time_remaining:
             self._countdown_id = self._shutdown_button.after(300, self._shutdown_countdown)
         else:
-            subprocess.run(["sudo", "/sbin/shutdown", "0"])
+            subprocess.run(["sudo", "/sbin/shutdown", "now"])
 
     def _shutdown(self):
         self._shutdown_button.grid_remove()
