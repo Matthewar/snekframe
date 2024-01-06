@@ -122,7 +122,26 @@ This only supports Python 3.10+ (`UPDATE..RETURNING` is only supported in SQLite
 sudo apt install python3-tk
 ```
 
-### Misc:
+### Install Program
+Install the program in the user area (while logged into the `snekframe` user).
+
+```bash
+su - snekframe
+# Get version to be installed
+python3 -m venv pyenv
+source pyenv/bin/activate
+pip install ./snekframe
+```
+
+### Setup Autolaunch GUI
+This will be launched by systemd, copy the file from install directory into user area.
+
+```bash
+cp <REPO LOCATION>/install/snekframe.service /etc/systemd/system/snekframe.service
+sudo systemctl enable snekframe.service
+```
+
+## Misc:
 
 - [Screen](https://thepihut.com/products/10-1inch-capacitive-touch-display)
 - [Wiki](https://www.waveshare.com/wiki/10.1DP-CAPLCD)

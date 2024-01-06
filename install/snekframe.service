@@ -1,0 +1,15 @@
+[Unit]
+Description=Snekframe photo frame display service
+PartOf=graphical.target
+After=graphical.target
+
+[Service]
+User=snekframe
+Environment=DISPLAY=:0
+Type=exec
+Restart=on-failure
+RestartSecs=5s
+ExecStart=/home/snekframe/pyenv/bin/launch_snekframe
+
+[Install]
+WantedBy=graphical.target
