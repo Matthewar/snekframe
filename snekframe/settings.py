@@ -137,7 +137,7 @@ class ShutdownWindow:
         if time_remaining:
             self._countdown_id = self._shutdown_button.after(300, self._shutdown_countdown)
         else:
-            subprocess.run(["sudo", "shutdown", "0"])
+            subprocess.run(["sudo", "/sbin/shutdown", "0"])
 
     def _shutdown(self):
         self._shutdown_button.grid_remove()
@@ -482,7 +482,7 @@ class SettingsWindow:
             if queried_version != self._upgrade_available:
                 raise Exception("queried version {} doesn't match expected upgrade {}".format(queried_version, self._upgrade_available))
             subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
-        subprocess.run(["sudo", "reboot"])
+        subprocess.run(["sudo", "/sbin/reboot"])
 
     # check version to install python3 -c 'from setuptools import setup; setup()' --version
 
