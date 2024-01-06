@@ -9,7 +9,7 @@ Environment=DISPLAY=:0
 Type=exec
 Restart=on-failure
 RestartSecs=5s
-ExecStart=/home/snekframe/pyenv/bin/launch_snekframe
+ExecStart=/home/snekframe/.snekframe/env/bin/launch_snekframe
 
 [Install]
 WantedBy=graphical.target

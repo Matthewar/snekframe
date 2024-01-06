@@ -128,8 +128,8 @@ Install the program in the user area (while logged into the `snekframe` user).
 ```bash
 su - snekframe
 # Get version to be installed
-python3 -m venv pyenv
-source pyenv/bin/activate
+python3 -m venv /home/snekframe/.snekframe/env
+source /home/snekframe/.snekframe/env/bin/activate
 pip install ./snekframe
 ```
 
