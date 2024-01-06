@@ -137,7 +137,7 @@ pip install ./snekframe
 This will be launched by systemd, copy the file from install directory into user area.
 
 ```bash
-cp <REPO LOCATION>/install/snekframe.service /etc/systemd/system/snekframe.service
+cp install/snekframe.service /etc/systemd/system/snekframe.service
 sudo systemctl enable snekframe.service
 ```
 
