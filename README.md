@@ -85,7 +85,7 @@ Can review this has been successfully applied with `sudo systemctl list-timers a
 User with autologin, this stores relevant files and is used to run the program.
 
 ```bash
-sudo useradd --comment "User for the photo display program" --create-home snekframe
+sudo useradd --comment "Photo display program" --create-home snekframe
 sudo passwd snekframe
 # Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4
@@ -97,6 +97,12 @@ Install the sudoers file to allow the `snekframe` user to perform operations lik
 ```bash
 sudo cp install/sudoer.snekframe /etc/sudoers.d/snekframe
 sudo chown root:root /etc/sudoers.d/snekframe
+```
+
+Can block others from SSHing into the program user, it only needs to be used in person.
+To do this modify `/etc/ssh/sshd_config`
+```sshd_config
+DenyUsers snekframe
 ```
 
 Modify the `/etc/lightdm/lightdm.conf`:
@@ -116,7 +122,27 @@ This only supports Python 3.10+ (`UPDATE..RETURNING` is only supported in SQLite
 sudo apt install python3-tk
 ```
 
-### Misc:
+### Install Program
+Install the program in the user area (while logged into the `snekframe` user).
+
+```bash
+su - snekframe
+mkdir -p /home/snekframe/.snekframe
+python3 -m venv /home/snekframe/.snekframe/env
+source /home/snekframe/.snekframe/env/bin/activate
+# Get repo version to be installed
+pip install ./snekframe
+```
+
+### Setup Autolaunch GUI
+This will be launched by systemd, copy the file from install directory into user area.
+
+```bash
+cp install/snekframe.service /etc/systemd/system/snekframe.service
+sudo systemctl enable snekframe.service
+```
+
+## Misc:
 
 - [Screen](https://thepihut.com/products/10-1inch-capacitive-touch-display)
 - [Wiki](https://www.waveshare.com/wiki/10.1DP-CAPLCD)
