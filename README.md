@@ -99,6 +99,12 @@ sudo cp install/sudoer.snekframe /etc/sudoers.d/snekframe
 sudo chown root:root /etc/sudoers.d/snekframe
 ```
 
+Can block others from SSHing into the program user, it only needs to be used in person.
+To do this modify `/etc/ssh/sshd_config`
+```sshd_config
+DenyUsers snekframe
+```
+
 Modify the `/etc/lightdm/lightdm.conf`:
 - `autologin-user=snekframe`
   - Change auto login user to `snekframe`
