@@ -609,6 +609,7 @@ class PhotoDisplayWindow:
 
             image_right_info = self._get_forward_image()
             self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
+            self._last_transition_time = datetime.datetime.now()
 
         self._inner_window.after(10000, self._transition_next_photo)
 
