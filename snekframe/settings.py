@@ -5,10 +5,14 @@ import datetime
 import math
 import subprocess
 import json
+import importlib.metadata
+import tempfile
+import os
 
 from .analyse import load_photo_files, setup_viewed_photos
-from .db import Settings, PhotoList, RUNTIME_SESSION, PERSISTENT_SESSION, RUNTIME_ENGINE, NumPhotos
+from .db import Settings, PhotoList, RUNTIME_SESSION, PERSISTENT_SESSION, RUNTIME_ENGINE, NumPhotos, get_database_version
 from .fonts import FONTS
+from . import params
 from .params import WINDOW_WIDTH
 
 import tkinter as tk
@@ -133,7 +137,7 @@ class ShutdownWindow:
         if time_remaining:
             self._countdown_id = self._shutdown_button.after(300, self._shutdown_countdown)
         else:
-            subprocess.run(["sudo", "shutdown", "0"])
+            subprocess.run(["sudo", "/sbin/shutdown", "now"])
 
     def _shutdown(self):
         self._shutdown_button.grid_remove()
@@ -272,10 +276,40 @@ class SettingsWindow:
         self._get_ip_addr() # TODO: if displayed
         row += 1
 
-        # TODO: Upgrade?
-
         self._shutdown_window = ShutdownWindow(self._inner_window, firstrow=row, firstcolumn=LEFTCOLUMN, grid_pady=5)
         row += self._shutdown_window.rows
+
+        current_db_version_label = ttk.Label(self._inner_window, text="Current Database Version:", justify=tk.LEFT, font=FONTS.default)
+        current_db_version_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        db_version_label = ttk.Label(self._inner_window, text="v%d.%d" % get_database_version(), justify=tk.RIGHT, font=FONTS.default)
+        db_version_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
+
+        current_version_string = importlib.metadata.version("snekframe")
+        self._current_version = current_version_string.split('.')
+        current_version_label = ttk.Label(self._inner_window, text="Current Version:", justify=tk.LEFT, font=FONTS.default)
+        current_version_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        version_label = ttk.Label(self._inner_window, text=current_version_string, justify=tk.RIGHT, font=FONTS.default)
+        version_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        row += 1
+
+        upgrade_label = ttk.Label(self._inner_window, text="Upgrade Available:", justify=tk.LEFT, font=FONTS.default)
+        upgrade_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        upgrade_frame = ttk.Frame(self._inner_window)
+        upgrade_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
+
+        self._upgrade_info = tk.StringVar()
+        self._upgrade_available = None
+
+        upgrade_info_label = ttk.Label(upgrade_frame, textvariable=self._upgrade_info, justify=tk.RIGHT, font=FONTS.default)
+        upgrade_info_label.grid(row=0, column=0)
+        self._upgrade_button = ttk.Button(upgrade_frame, text="Upgrade", state=self._get_upgrade_button_state(), command=self._run_upgrade)
+        self._upgrade_button.grid(row=0, column=1)
+        check_upgrade_button = ttk.Button(upgrade_frame, text="Check for upgrade", command=self._check_upgrade)
+        check_upgrade_button.grid(row=0, column=2)
+        self._check_upgrade()
+
+        row += 1
 
         self._inner_window.grid_columnconfigure(0, weight=1)
         self._inner_window.grid_columnconfigure(RIGHTCOLUMN+1, weight=1)
@@ -428,6 +462,50 @@ class SettingsWindow:
             self._ip_addr.set("Failed to find IP!")
 
         self._ip_addr_info_label.after(60*60*1000, self._get_ip_addr)
+
+    def _get_upgrade_button_state(self):
+        if self._upgrade_available is None:
+            return "disabled"
+        else:
+            return "!disabled"
+
+    def _run_upgrade(self):
+        if self._upgrade_available is None:
+            return
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
+            REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
+            subprocess.run(["git", "checkout", "v{}".format(".".join(self._upgrade_available))], cwd=REPO_DIR)
+            query_version = subprocess.run(["python3", "-c", "'from setuptools import setup; setup()'", "--version"], cwd=REPO_DIR, stdout=subprocess.PIPE)
+            queried_version = query_version.stdout.rstrip('\n').lstrip('v').split('.')[0:2]
+            if queried_version != self._upgrade_available:
+                raise Exception("queried version {} doesn't match expected upgrade {}".format(queried_version, self._upgrade_available))
+            subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
+        subprocess.run(["sudo", "/sbin/reboot"])
+
+    def _check_upgrade(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
+            REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
+            get_tags = subprocess.run(["git", "tag", "--sort=creatordate"], cwd=REPO_DIR, stdout=subprocess.PIPE, text=True)
+            all_tags = get_tags.stdout.rstrip('\n').split('\n')
+        if not all_tags or (len(all_tags) == 1 and all_tags[0] == ''):
+            self._upgrade_info.set("Unable to find any versions!")
+            self._upgrade_available = None
+        else:
+            latest_major, latest_minor = all_tags[-1].lstrip('v').split('.')[0:2]
+            if (latest_major, latest_minor) == self._current_version:
+                self._upgrade_info.set("Already on latest version")
+                self._upgrade_available = None
+            elif (latest_major, latest_minor) < self._current_version:
+                self._upgrade_info.set(f"Error: Latest reported version (v{latest_major}.{latest_minor}) is older than current version")
+                self._upgrade_available = None
+            else:
+                self._upgrade_info.set(f"Version v{latest_major}.{latest_minor} now available")
+                self._upgrade_available = (latest_major, latest_minor)
+
+        self._upgrade_button.state([self._get_upgrade_button_state()])
 
     def place(self, **place_kwargs):
         self._main_window.place(**place_kwargs)
