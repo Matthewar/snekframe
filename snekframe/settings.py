@@ -155,7 +155,7 @@ class ShutdownWindow:
         if time_remaining:
             self._countdown_id = self._shutdown_button.after(300, self._restart_countdown)
         else:
-            subprocess.run(["sudo", "reboot"])
+            subprocess.run(["sudo", "/sbin/reboot"])
 
     def _restart(self):
         self._shutdown_button.grid_remove()
@@ -287,7 +287,7 @@ class SettingsWindow:
         row += 1
 
         current_version_string = importlib.metadata.version("snekframe")
-        self._current_version = current_version_string.split('.')
+        self._current_version = tuple(current_version_string.split('.'))
         current_version_label = ttk.Label(self._inner_window, text="Current Version:", justify=tk.LEFT, font=FONTS.default)
         current_version_label.grid(row=row, column=LEFTCOLUMN, pady=5)
         version_label = ttk.Label(self._inner_window, text=current_version_string, justify=tk.RIGHT, font=FONTS.default)
@@ -480,8 +480,8 @@ class SettingsWindow:
             subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
             REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
             subprocess.run(["git", "checkout", "v{}".format(".".join(self._upgrade_available))], cwd=REPO_DIR)
-            query_version = subprocess.run(["python3", "-c", "'from setuptools import setup; setup()'", "--version"], cwd=REPO_DIR, stdout=subprocess.PIPE)
-            queried_version = query_version.stdout.rstrip('\n').lstrip('v').split('.')[0:2]
+            query_version = subprocess.run(["python3", "-c", "from setuptools import setup; setup()", "--version"], cwd=REPO_DIR, stdout=subprocess.PIPE, text=True)
+            queried_version = tuple(query_version.stdout.rstrip('\n').lstrip('v').split('.')[0:3])
             if queried_version != self._upgrade_available:
                 raise Exception("queried version {} doesn't match expected upgrade {}".format(queried_version, self._upgrade_available))
             subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
@@ -516,16 +516,16 @@ class SettingsWindow:
             self._upgrade_info_text = "Unable to find any versions!"
             self._upgrade_available = None
         else:
-            latest_major, latest_minor = all_tags[-1].lstrip('v').split('.')[0:2]
-            if (latest_major, latest_minor) == self._current_version:
+            latest_major, latest_minor, latest_patch = all_tags[-1].lstrip('v').split('.')[0:3]
+            if (latest_major, latest_minor, latest_patch) == self._current_version:
                 self._upgrade_info_text = "Already on latest version"
                 self._upgrade_available = None
-            elif (latest_major, latest_minor) < self._current_version:
+            elif (latest_major, latest_minor, latest_patch) < self._current_version:
                 self._upgrade_info_text = f"Error: Latest reported version (v{latest_major}.{latest_minor}) is older than current version"
                 self._upgrade_available = None
             else:
-                self._upgrade_info_text = f"Version v{latest_major}.{latest_minor} now available"
-                self._upgrade_available = (latest_major, latest_minor)
+                self._upgrade_info_text = f"Version v{latest_major}.{latest_minor}.{latest_patch} now available"
+                self._upgrade_available = (latest_major, latest_minor, latest_patch)
 
     def place(self, **place_kwargs):
         self._main_window.place(**place_kwargs)
