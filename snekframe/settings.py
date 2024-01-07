@@ -8,6 +8,7 @@ import json
 import importlib.metadata
 import tempfile
 import os
+import threading
 
 from .analyse import load_photo_files, setup_viewed_photos
 from .db import Settings, PhotoList, RUNTIME_SESSION, PERSISTENT_SESSION, RUNTIME_ENGINE, NumPhotos, get_database_version
@@ -298,8 +299,10 @@ class SettingsWindow:
         upgrade_frame = ttk.Frame(self._inner_window)
         upgrade_frame.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
+        self._upgrade_info_text = None
         self._upgrade_info = tk.StringVar()
         self._upgrade_available = None
+        self._upgrade_check_thread = None
 
         upgrade_info_label = ttk.Label(upgrade_frame, textvariable=self._upgrade_info, justify=tk.RIGHT, font=FONTS.default)
         upgrade_info_label.grid(row=0, column=0)
@@ -485,27 +488,44 @@ class SettingsWindow:
         subprocess.run(["sudo", "/sbin/reboot"])
 
     def _check_upgrade(self):
+        if self._upgrade_check_thread is not None:
+            self._upgrade_info.set("Error: Program in bad state")
+            return
+        self._upgrade_button.state(["disabled"])
+        self._upgrade_available = None
+        self._upgrade_info.set("Checking for new versions")
+        self._upgrade_check_thread = threading.Thread(target=self._thread_check_upgrade)
+        self._upgrade_check_thread.start()
+        self._check_upgrade_complete()
+
+    def _check_upgrade_complete(self):
+        if self._upgrade_check_thread.is_alive():
+            self._upgrade_button.after(100, self._check_upgrade_complete)
+        else:
+            self._upgrade_button.state([self._get_upgrade_button_state()])
+            self._upgrade_info.set(self._upgrade_info_text)
+            self._upgrade_check_thread = None
+
+    def _thread_check_upgrade(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
             REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
             get_tags = subprocess.run(["git", "tag", "--sort=creatordate"], cwd=REPO_DIR, stdout=subprocess.PIPE, text=True)
             all_tags = get_tags.stdout.rstrip('\n').split('\n')
         if not all_tags or (len(all_tags) == 1 and all_tags[0] == ''):
-            self._upgrade_info.set("Unable to find any versions!")
+            self._upgrade_info_text = "Unable to find any versions!"
             self._upgrade_available = None
         else:
             latest_major, latest_minor = all_tags[-1].lstrip('v').split('.')[0:2]
             if (latest_major, latest_minor) == self._current_version:
-                self._upgrade_info.set("Already on latest version")
+                self._upgrade_info_text = "Already on latest version"
                 self._upgrade_available = None
             elif (latest_major, latest_minor) < self._current_version:
-                self._upgrade_info.set(f"Error: Latest reported version (v{latest_major}.{latest_minor}) is older than current version")
+                self._upgrade_info_text = f"Error: Latest reported version (v{latest_major}.{latest_minor}) is older than current version"
                 self._upgrade_available = None
             else:
-                self._upgrade_info.set(f"Version v{latest_major}.{latest_minor} now available")
+                self._upgrade_info_text = f"Version v{latest_major}.{latest_minor} now available"
                 self._upgrade_available = (latest_major, latest_minor)
-
-        self._upgrade_button.state([self._get_upgrade_button_state()])
 
     def place(self, **place_kwargs):
         self._main_window.place(**place_kwargs)
