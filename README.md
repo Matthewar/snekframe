@@ -8,6 +8,25 @@ If you use Raspberry Pi image can setup WiFi and root user, otherwise that needs
 
 Needs Raspberry Pi OS including desktop environment.
 
+
+#### Disable Bluetooth
+Not required currently so can close this by modifying `/boot/config.txt`:
+```
+# Disable bluetooth
+dtoverlay=disable-bt
+```
+
+Need to disable the service that initialises the model so it doesn't connect to UART
+(see [raspberry pi documentation](https://www.raspberrypi.com/documentation/computers/configuration.html#uarts-and-device-tree)).
+```
+# This configures bluetooth modems connected by UART
+sudo systemctl disable hciuart
+```
+Can also disable bluetooth service because it's unnecessary
+```
+sudo systemctl disable bluetooth
+```
+
 ### 2. Setup Root User
 Normal root user setup (dotfiles, etc.).
 
