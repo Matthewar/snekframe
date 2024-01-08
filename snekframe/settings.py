@@ -206,8 +206,8 @@ class SettingsWindow:
 
         # TODO: If no photos, disable all shuffling?
         self._shuffle = tk.BooleanVar(value=self._settings_selection.shuffle_photos)
-        self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False)
-        self._shuffle_off_button = tk.Radiobutton(shuffle_photos_frame, text="Off", state=self._get_shuffle_off_state(), variable=self._shuffle, value=False, command=self._shuffle_button_callback, indicatoron=False)
+        self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False, font=FONTS.default)
+        self._shuffle_off_button = tk.Radiobutton(shuffle_photos_frame, text="Off", state=self._get_shuffle_off_state(), variable=self._shuffle, value=False, command=self._shuffle_button_callback, indicatoron=False, font=FONTS.default)
         self._shuffle_trigger_button = ttk.Button(shuffle_photos_frame, text="Reshuffle", state=self._get_shuffle_trigger_state(), command=self._trigger_shuffle)
 
         self._shuffle_on_button.grid(row=0, column=1)
@@ -226,7 +226,7 @@ class SettingsWindow:
         self._decrease_transition_time_button = ttk.Button(photo_transition_controls, text="-", state=self._get_transition_minus_state(), command=self._transition_decrease_callback)
         self._transition_time = tk.StringVar()
         self._set_transition_time_string()
-        self._transition_time_display = ttk.Label(photo_transition_controls, textvariable=self._transition_time)
+        self._transition_time_display = ttk.Label(photo_transition_controls, textvariable=self._transition_time, font=FONTS.default)
         self._increase_transition_time_button = ttk.Button(photo_transition_controls, text="+", state=self._get_transition_plus_state(), command=self._transition_increase_callback)
 
         self._decrease_transition_time_button.grid(row=0, column=1)
