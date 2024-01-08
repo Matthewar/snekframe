@@ -48,14 +48,14 @@ class PhotoTitleBar:
 
         self._datetime = datetime.datetime.now()
         self._datetime_text = tk.StringVar()
-        self._datetime_label = ttk.Label(master=self._frame, anchor="e", justify=tk.RIGHT, textvariable=self._datetime_text, font=FONTS.subtitle, style="TitleBar.TLabel")
+        self._datetime_label = ttk.Label(master=self._frame, anchor="e", justify=tk.RIGHT, textvariable=self._datetime_text, font=FONTS.bold, style="TitleBar.TLabel")
         self._datetime_label.place(relx=1.0, rely=0.5, anchor="e")
 
         self._open_selection = open_selection
         self._open_settings = open_settings
 
-        self._settings_button = ttk.Button(master=self._frame, text="Settings", command=self._callback_open_settings)#, font=FONTS.subtitle)
-        self._select_button = ttk.Button(master=self._frame, text="Select Photos", command=self._callback_open_selection)
+        self._settings_button = ttk.Button(master=self._frame, text="Settings", command=self._callback_open_settings, style="TitleBar.TButton")
+        self._select_button = ttk.Button(master=self._frame, text="Select Photos", command=self._callback_open_selection, style="TitleBar.TButton")
 
         self._settings_button.place(x=5, rely=0.5, anchor="w")
         self._select_button.place(x=5+self._settings_button.winfo_reqwidth()+5, rely=0.5, anchor="w")

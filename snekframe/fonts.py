@@ -13,8 +13,9 @@ class _FontGenerator:
     _FONT_FAMILY = "Helvetica"
 
     def generate(self):
-        self._fonts["title"] = font.Font(name="TitleFont", family=self._FONT_FAMILY, size=30, weight="bold")
-        self._fonts["subtitle"] = font.Font(name="SubtitleFont", family=self._FONT_FAMILY, size=20, weight="bold")
-        self._fonts["default"] = font.Font(name="DefaultFont", family=self._FONT_FAMILY, size=13)
+        self._fonts["title"] = font.Font(name="TitleFont", family=self._FONT_FAMILY, size=40, weight="bold")
+        self._fonts["subtitle"] = font.Font(name="SubtitleFont", family=self._FONT_FAMILY, size=35, weight="bold")
+        self._fonts["default"] = font.Font(name="DefaultFont", family=self._FONT_FAMILY, size=25)
+        self._fonts["bold"] = font.Font(name="BoldFont", family=self._FONT_FAMILY, size=25, weight="bold")
 
 FONTS = _FontGenerator()
