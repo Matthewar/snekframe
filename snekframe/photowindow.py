@@ -21,6 +21,110 @@ from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION,
 from .fonts import FONTS
 from .settings import SettingsWindow, SettingsContainer
 
+class UpdateLabel:
+    """Label with text that can be updated"""
+    _LABEL_KWARGS = set(("anchor", "justify", "font", "style"))
+
+    def __init__(self, parent, initialtext=None, **label_kwargs):
+        for key in label_kwargs:
+            if key not in self._LABEL_KWARGS:
+                raise TypeError(f"Unexpected kwarg '{key}' not allowed in constructor")
+
+        self._text = tk.StringVar(value=initialtext)
+        self._label = ttk.Label(master=parent, textvariable=self._text, **label_kwargs)
+
+    @property
+    def text(self):
+        """Label text"""
+        return self._text.get()
+
+    @text.setter
+    def text(self, value):
+        self._text.set(value)
+
+    def place(self, **place_kwargs):
+        """Place label in parent"""
+        self._label.place(**place_kwargs)
+
+    def place_forget(self):
+        """Remove label from parent"""
+        self._label.place_forget()
+
+class AutoUpdateLabel(UpdateLabel):
+    """Label with text that can be updated
+
+    Label will also update periodically (won't start until placed)
+    """
+
+    UPDATE_CALLBACK_MIN_TIME_MS = 1000
+
+    def __init__(self, parent, initialtext=None, **label_kwargs):
+        super().__init__(parent, initialtext=initialtext, **label_kwargs)
+
+        self._update_job = None
+        if initialtext is None:
+            self._update_label()
+
+    def _update_label(self):
+        """Update label callback, needs to be overridden"""
+        raise NotImplementedError()
+
+    def _update_label_no_cancel(self):
+        """This should only be called by the after callback
+
+        IE there won't be an update_job running any more
+        """
+        self._update_label()
+        self._update_job = self._label.after(self.UPDATE_CALLBACK_MIN_TIME_MS, self._update_label_no_cancel)
+
+    def update_label(self):
+        """Update the label and unpause updates if paused"""
+        self.pause_updates()
+        self._update_label_no_cancel()
+
+    def pause_updates(self):
+        """Pause auto updating label"""
+        if self._update_job is not None:
+            self._label.after_cancel(self._update_job)
+            self._update_job = None
+
+    @property
+    def updates_paused(self):
+        """Whether the label is currently updating"""
+        return self._update_job is None
+
+    def place(self, unpause_updates=True, **place_kwargs):
+        """Place label in parent
+
+        Defaults to start updating the label
+        """
+        if unpause_updates:
+            self.update_label()
+        super().place_forget()
+
+    def place_forget(self, pause_updates=True):
+        """Remove label from parent
+
+        Defaults to pause updating the label
+        """
+        if pause_updates:
+            self.pause_updates()
+        super().place_forget()
+
+class AutoUpdateDateLabel(AutoUpdateLabel):
+    """Label with datetime that auto updates"""
+
+    UPDATE_CALLBACK_MIN_TIME_MS = 10000 # Every 30 seconds (only display up to minute)
+
+    def __init__(self, parent, **label_kwargs):
+        if "initialtext" in label_kwargs:
+            raise TypeError("kwarg 'initialtext' not permitted in {}".format(self.__class__.__name__))
+        super().__init__(parent, **label_kwargs)
+
+    def _update_label(self):
+        """Update current time display"""
+        self.text = datetime.datetime.now().strftime("%a %d/%m/%Y, %I:%M%p")
+
 class PhotoTitleBar:
     """Titlebar
 
@@ -42,14 +146,11 @@ class PhotoTitleBar:
         self._frame = ttk.Frame(master=parent, width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT, style="TitleBar.TFrame")
         self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
 
-        self._title_text = tk.StringVar()
-        self._title_label = ttk.Label(master=self._frame, anchor=tk.CENTER, justify=tk.CENTER, textvariable=self._title_text, font=FONTS.title, style="TitleBar.TLabel")
-        self._title_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        self._title = UpdateLabel(self._frame, anchor=tk.CENTER, justify=tk.CENTER, font=FONTS.title, style="TitleBar.TLabel")
+        self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._datetime = datetime.datetime.now()
-        self._datetime_text = tk.StringVar()
-        self._datetime_label = ttk.Label(master=self._frame, anchor="e", justify=tk.RIGHT, textvariable=self._datetime_text, font=FONTS.bold, style="TitleBar.TLabel")
-        self._datetime_label.place(relx=1.0, rely=0.5, anchor="e")
+        self._datetime = AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar.TLabel")
+        self._datetime.place(relx=1.0, rely=0.5, anchor="e")
 
         self._open_selection = open_selection
         self._open_settings = open_settings
@@ -61,7 +162,7 @@ class PhotoTitleBar:
         self._select_button.place(x=5+self._settings_button.winfo_reqwidth()+5, rely=0.5, anchor="w")
 
         self._mode = None
-        self._show_title_bar()
+        self._show_title_bar() # Review when I'm calling this
 
     def _callback_open_settings(self):
         if not self._settings_button.instate(["disabled"]):
@@ -74,37 +175,27 @@ class PhotoTitleBar:
     def _show_title_bar(self):
         self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
         self._frame.tkraise()
-        self._update_datetime()
-
-    @property
-    def _is_visible(self):
-        return self._mode != self.Mode.PhotosHidden
-
-    def _update_datetime(self):
-        self._datetime = datetime.datetime.now()
-        self._datetime_text.set(self._datetime.strftime("%a %d/%m/%Y, %I:%M%p"))
-        if self._is_visible: # How many times can this be spawned?
-            self._datetime_label.after(10000, self._update_datetime)
+        self._datetime.update_label()
 
     def show_photo_title(self, title=None):
         if self._mode == self.Mode.PhotosVisible:
             if title is None:
                 raise Exception()
-            self._title_text.set(title)
+            self._title.text = title
         elif self._mode == self.Mode.Settings:
             if title is None:
                 raise Exception()
             self._settings_button.state(["!disabled"])
-            self._title_text.set(title)
+            self._title.text = title
         elif self._mode == self.Mode.PhotosHidden:
             if title is not None:
-                self._title_text.set(title)
+                self._title.text = title
             self._show_title_bar()
             self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
         elif self._mode == self.Mode.Selection:
             if title is None:
                 raise Exception()
-            self._title_text.set(title)
+            self._title.text = title
             self._select_button.state(["!disabled"])
         elif self._mode is None:
             # Only occurs on startup
@@ -112,7 +203,7 @@ class PhotoTitleBar:
                 raise Exception()
             self._settings_button.state(["!disabled"])
             self._select_button.state(["!disabled"])
-            self._title_text.set(title)
+            self._title.text = title
             self._show_title_bar()
         else:
             logging.error("In unknown mode '%s'", self._mode)
@@ -123,30 +214,34 @@ class PhotoTitleBar:
         if self._mode == self.Mode.PhotosHidden:
             if title is None:
                 raise Exception()
-            self._title_text.set(title)
+            self._title.text = title
         elif self._mode == self.Mode.PhotosVisible:
             if title is not None:
-                self._title_text.set(title)
+                self._title.text = title
             self._frame.place_forget()
+            self._datetime.pause_updates()
         elif self._mode == self.Mode.Settings:
             if title is None:
                 raise Exception()
             self._settings_button.state(["!disabled"])
-            self._title_text.set(title)
+            self._title.text = title
             self._frame.place_forget()
+            self._datetime.pause_updates()
         elif self._mode == self.Mode.Selection:
             if title is None:
                 raise Exception()
             self._select_button.state(["!disabled"])
-            self._title_text.set(title)
+            self._title.text = title
+            self._datetime.pause_updates()
         elif self._mode is None:
             # Only occurs on startup
             if title is None:
                 raise Exception()
             self._settings_button.state(["!disabled"])
             self._select_button.state(["!disabled"])
-            self._title_text.set(title)
+            self._title.text = title
             self._frame.place_forget()
+            self._datetime.pause_updates()
         else:
             logging.error("In unknown mode '%s'", self._mode)
 
@@ -158,20 +253,20 @@ class PhotoTitleBar:
             logging.info("Called when already in mode")
         elif self._mode == self.Mode.PhotosVisible:
             self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
+            self._title.text = "Select Photos"
         elif self._mode == self.Mode.PhotosHidden:
             self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
+            self._title.text = "Select Photos"
             self._show_title_bar()
         elif self._mode == self.Mode.Settings:
             self._settings_button.state(["!disabled"])
             self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
+            self._title.text = "Select Photos"
         elif self._mode is None:
             # Only occurs on startup
             self._settings_button.state(["!disabled"])
             self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
+            self._title.text = "Select Photos"
             self._show_title_bar()
         else:
             logging.error("In unknown mode '%s'", self._mode)
@@ -184,19 +279,19 @@ class PhotoTitleBar:
             logging.info("Called when already in mode")
         elif self._mode == self.Mode.PhotosVisible:
             self._settings_button.state(["disabled"])
-            self._title_text.set("Settings")
+            self._title.text = "Settings"
         elif self._mode == self.Mode.PhotosHidden:
             self._settings_button.state(["disabled"])
-            self._title_text.set("Settings")
+            self._title.text = "Settings"
             self._show_title_bar()
         elif self._mode == self.Mode.Selection:
             self._settings_button.state(["disabled"])
             self._select_button.state(["!disabled"])
-            self._title_text.set("Settings")
+            self._title.text = "Settings"
         elif self._mode is None:
             self._settings_button.state(["disabled"])
             self._select_button.state(["!disabled"])
-            self._title_text.set("Settings")
+            self._title.text = "Settings"
             self._show_title_bar()
         else:
             logging.error("In unknown mode '%s'", self._mode)
