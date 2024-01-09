@@ -1,16 +1,21 @@
 import tkinter.ttk as ttk
 
+DEFAULT_BACKGROUND_COLOUR = "#64676E"
+HIGHLIGHT_BACKGROUND_COLOUR = "#2E3033"
+PHOTO_BACKGROUND_COLOUR = "#000000" # Black
+FONT_COLOUR = "white"
+
 class _StyleGenerator:
     def generate(self):
         styles = ttk.Style()
-        styles.configure("TFrame", background="#64676E")
-        styles.configure("TLabel", background="#64676E")
-        styles.configure("TButton", background="#2E3033", foreground="white")
-        styles.configure("DisplayWindow.TFrame", background="#000000")
-        styles.configure("Image.DisplayWindow.TLabel", background="#000000")
-        styles.configure("TitleBar.TFrame", background="#2E3033")
-        styles.configure("TitleBar.TLabel", background="#2E3033", foreground="white")
-        styles.configure("TitleBar.TButton", background="#64676E", foreground="white")
+        styles.configure("TFrame", background=DEFAULT_BACKGROUND_COLOUR)
+        styles.configure("TLabel", background=DEFAULT_BACKGROUND_COLOUR)
+        styles.configure("TButton", background=HIGHLIGHT_BACKGROUND_COLOUR, foreground=FONT_COLOUR)
+        styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR)
+        styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR)
+        styles.configure("TitleBar.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR)
+        styles.configure("TitleBar.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR, foreground=FONT_COLOUR)
+        styles.configure("TitleBar.TButton", background=DEFAULT_BACKGROUND_COLOUR, foreground=FONT_COLOUR)
         styles.configure("TButton", font="DefaultFont")
 
 STYLES = _StyleGenerator()
