@@ -35,7 +35,7 @@ class _Icons:
 
     def get(self, key):
         """Get image"""
-        if key in self._IMAGE_FILES:
+        if key not in self._IMAGE_FILES:
             raise AttributeError(f"No known image file for '{key}'")
 
         if key not in self._images:

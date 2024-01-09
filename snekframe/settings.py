@@ -209,7 +209,7 @@ class SettingsWindow:
         self._shuffle = tk.BooleanVar(value=self._settings_selection.shuffle_photos)
         self._shuffle_on_button = tk.Radiobutton(shuffle_photos_frame, text="On", state=self._get_shuffle_on_state(), variable=self._shuffle, value=True, command=self._shuffle_button_callback, indicatoron=False, font=FONTS.default)
         self._shuffle_off_button = tk.Radiobutton(shuffle_photos_frame, text="Off", state=self._get_shuffle_off_state(), variable=self._shuffle, value=False, command=self._shuffle_button_callback, indicatoron=False, font=FONTS.default)
-        self._shuffle_trigger_button = ttk.Button(shuffle_photos_frame, iamge=icons.ICONS.get("shuffle"), text="Reshuffle", state=self._get_shuffle_trigger_state(), command=self._trigger_shuffle)
+        self._shuffle_trigger_button = ttk.Button(shuffle_photos_frame, image=icons.ICONS.get("shuffle"), text="Reshuffle", state=self._get_shuffle_trigger_state(), command=self._trigger_shuffle)
 
         self._shuffle_on_button.grid(row=0, column=1)
         self._shuffle_off_button.grid(row=0, column=2)
