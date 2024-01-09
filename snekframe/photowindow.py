@@ -17,6 +17,7 @@ import PIL.ImageTk
 
 from .analyse import load_photo_files, setup_viewed_photos
 from . import elements
+from . import icons
 from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, TITLE_BAR_COLOUR, FILES_LOCATION, PHOTOS_LOCATION
 from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList
 from .fonts import FONTS
@@ -52,8 +53,8 @@ class PhotoTitleBar:
         self._open_selection = open_selection
         self._open_settings = open_settings
 
-        self._settings_button = ttk.Button(master=self._frame, text="Settings", command=self._callback_open_settings, style="TitleBar.TButton")
-        self._select_button = ttk.Button(master=self._frame, text="Select Photos", command=self._callback_open_selection, style="TitleBar.TButton")
+        self._settings_button = ttk.Button(master=self._frame, image=icons.ICONS.get("settings"), text="Settings", command=self._callback_open_settings, style="TitleBar.TButton")
+        self._select_button = ttk.Button(master=self._frame, image=icons.ICONS.get("slideshow"), text="Select Photos", command=self._callback_open_selection, style="TitleBar.TButton")
 
         self._settings_button.place(x=5, rely=0.5, anchor="w")
         self._select_button.place(x=5+self._settings_button.winfo_reqwidth()+5, rely=0.5, anchor="w")
