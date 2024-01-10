@@ -3,7 +3,7 @@ import tkinter.ttk as ttk
 DEFAULT_BACKGROUND_COLOUR = "#64676E"
 HIGHLIGHT_BACKGROUND_COLOUR = "#2E3033"
 PHOTO_BACKGROUND_COLOUR = "#000000" # Black
-FONT_COLOUR = "white"
+FONT_COLOUR = "#ffffff" # White
 
 class _StyleGenerator:
     def generate(self):

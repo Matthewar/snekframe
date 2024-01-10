@@ -5,17 +5,38 @@ import datetime
 import tkinter as tk
 from tkinter import ttk
 
-class UpdateLabel:
-    """Label with text that can be updated"""
-    _LABEL_KWARGS = set(("anchor", "justify", "font", "style"))
+from .icons import ICONS
 
-    def __init__(self, parent, initialtext=None, **label_kwargs):
+class _LimitedLabel:
+    """Basic label wrapper with limited parameters
+
+    Defaults to no supported label parameters, not intended for this to be used externally
+    """
+    _LABEL_KWARGS : set[str] = set()
+
+    def __init__(self, parent, user_label_kwargs, **label_kwargs):
         for key in label_kwargs:
             if key not in self._LABEL_KWARGS:
                 raise TypeError(f"Unexpected kwarg '{key}' not allowed in constructor")
 
+        all_kwargs = user_label_kwargs | label_kwargs
+        self._label = ttk.Label(master=parent, **all_kwargs)
+
+    def place(self, **place_kwargs):
+        """Place label in parent"""
+        self._label.place(**place_kwargs)
+
+    def place_forget(self):
+        """Remove label from parent"""
+        self._label.place_forget()
+
+class UpdateLabel(_LimitedLabel):
+    """Label with text that can be updated"""
+    _LABEL_KWARGS = set(("anchor", "justify", "font", "style"))
+
+    def __init__(self, parent, initialtext=None, **label_kwargs):
         self._text = tk.StringVar(value=initialtext)
-        self._label = ttk.Label(master=parent, textvariable=self._text, **label_kwargs)
+        super().__init__(parent, label_kwargs, textvariable=self._text)
 
     @property
     def text(self):
@@ -25,14 +46,6 @@ class UpdateLabel:
     @text.setter
     def text(self, value):
         self._text.set(value)
-
-    def place(self, **place_kwargs):
-        """Place label in parent"""
-        self._label.place(**place_kwargs)
-
-    def place_forget(self):
-        """Remove label from parent"""
-        self._label.place_forget()
 
 class AutoUpdateLabel(UpdateLabel):
     """Label with text that can be updated
@@ -108,3 +121,109 @@ class AutoUpdateDateLabel(AutoUpdateLabel):
     def _update_label(self):
         """Update current time display"""
         self.text = datetime.datetime.now().strftime("%a %d/%m/%Y, %I:%M%p")
+
+class _Button(_LimitedLabel):
+    """Custom basic button
+
+    - Button 1 -> Switched from normal to active (if not disabled)
+    - Leave -> If clicked, goes from active to normal
+    - Enter -> If still clicked, goes from normal to active
+    - Button Release 1 -> Switches from active to normal. Triggers command
+    """
+    def __init__(self, parent, command, user_label_kwargs, enabled=True, **label_kwargs):
+        super().__init__(parent, user_label_kwargs, **label_kwargs)
+        self._setup_bindings(command)
+
+        self._clicked = (False, False)
+        self._enabled = enabled
+
+        if not self._enabled:
+            self._style_disabled(None)
+        else:
+            self._style_active(None)
+
+    @property
+    def enabled(self):
+        """Whether the button is enabled"""
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, enable):
+        if not isinstance(enable, bool):
+            raise TypeError("Button enable is boolean")
+        if self._enabled and not enable:
+            self._style_disabled(None)
+        elif not self._enabled and enable:
+            self._style_normal(None)
+        self._enabled = enable
+
+    def _setup_bindings(self, command):
+        self._label.bind("<Button-1>", self._callback_click)
+        self._label.bind("<ButtonRelease-1>", lambda event: self._callback_release(event, command))
+        self._label.bind("<Enter>", self._callback_enter)
+        self._label.bind("<Leave>", self._callback_leave)
+
+    def _callback_click(self, event):
+        if not self._enabled:
+            return
+
+        self._style_active(event)
+        self._clicked = (True, True)
+
+    def _callback_enter(self, event):
+        if not self._clicked[0]:
+            return
+
+        if not self._clicked[1]:
+            self._style_active(event)
+        self._clicked = (True, True)
+
+    def _callback_leave(self, event):
+        if not self._clicked[0]:
+            return
+
+        if self._clicked[1]:
+            self._style_normal(event)
+        self._clicked = (True, False)
+
+    def _callback_release(self, event, command):
+        if not self._clicked[0]:
+            return
+        if self._clicked[1]:
+            self._style_normal(event)
+            command()
+        self._clicked = (False, False)
+
+    def _style_normal(self, event):
+        raise NotImplementedError()
+
+    def _style_active(self, event):
+        raise NotImplementedError()
+
+    def _style_disabled(self, event):
+        raise NotImplementedError()
+
+class IconButton(_Button):
+    """Button using image icon"""
+    _NORMAL_ICON_COLOUR = "#000000"
+    _ACTIVE_ICON_COLOUR = "#ffffff"
+    _DISABLED_ICON_COLOUR = "#ABB0B8"
+
+    def __init__(self, parent, command, icon_name, enabled=True, **label_kwargs):
+        self._normal_icon = ICONS.get(icon_name, hexcolour=self._NORMAL_ICON_COLOUR)
+        self._active_icon = ICONS.get(icon_name, hexcolour=self._ACTIVE_ICON_COLOUR)
+        self._disabled_icon = ICONS.get(icon_name, hexcolour=self._DISABLED_ICON_COLOUR)
+
+        super().__init__(parent, command, label_kwargs, enabled=enabled, image=self._normal_icon)
+
+    def _style_normal(self, event):
+        self._label.configure(image=self._normal_icon)
+        self._label.image = self._normal_icon
+
+    def _style_active(self, event):
+        self._label.configure(image=self._active_icon)
+        self._label.image = self._active_icon
+
+    def _style_disabled(self, event):
+        self._label.configure(image=self._disabled_icon)
+        self._label.image = self._disabled_icon
