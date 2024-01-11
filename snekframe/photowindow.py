@@ -65,7 +65,7 @@ class PhotoTitleBar:
             open_selection()
             self._title.text = "Select Photos"
 
-        self._select_button = self._title_menu_buttons.add_button(title_menu, open_selection, "slideshow", selected=False)
+        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, "slideshow", selected=False)
         self._select_button.grid(row=0, column=1, pady=2.5)
 
         self._visible = False
