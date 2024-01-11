@@ -20,7 +20,7 @@ class Colour:
 
         Prefixed with '#'
         """
-        return f"#{self._colour:x}"
+        return f"#{self._colour:0<6x}"
 
     @property
     def integer(self):
@@ -43,7 +43,7 @@ class _StyleGenerator:
         styles = ttk.Style()
         styles.configure("TFrame", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
-        styles.configure("TButton", background=HIGHLIGHT_BACKGROUND_COLOUR, foreground=FONT_COLOUR.string)
+        styles.configure("TButton", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR.string)
         styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string)
         styles.configure("TitleBar.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
