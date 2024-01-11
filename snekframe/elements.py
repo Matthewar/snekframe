@@ -315,24 +315,9 @@ class _RadioButton(_Button):
                 self._style_normal()
         self._clicked = (True, False)
 
-RadioIconColours = collections.namedtuple("RadioIconColours", ["normal", "active", "selected", "background"])
-
-DEFAULT_RADIO_ICON_COLOURS = RadioIconColours(
-    background=DEFAULT_ICON_COLOURS.background,
-    normal=DEFAULT_ICON_COLOURS.normal,
-    active=DEFAULT_ICON_COLOURS.active,
-    selected=DEFAULT_ICON_COLOURS.active
-)
-TITLE_RADIO_ICON_COLOURS = RadioIconColours(
-    background=TITLE_ICON_COLOURS.background,
-    normal=TITLE_ICON_COLOURS.normal,
-    active=TITLE_ICON_COLOURS.active,
-    selected=TITLE_ICON_COLOURS.active
-)
-
 class IconRadioButton(_RadioButton):
     """RadioButton using image icon"""
-    def __init__(self, parent, command, icon_name, enabled=True, selected=True, colours=DEFAULT_RADIO_ICON_COLOURS, **label_kwargs):
+    def __init__(self, parent, command, icon_name, enabled=True, selected=True, colours=DEFAULT_ICON_COLOURS, **label_kwargs):
         self._normal_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
         self._active_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.active)
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
