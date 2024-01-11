@@ -158,6 +158,10 @@ class _Button(_LimitedLabel):
         """Whether the button is enabled"""
         return self._enabled
 
+    @enabled.setter
+    def enabled(self, enable):
+        self._set_enable(enable)
+
     def _set_enable(self, enable):
         if not isinstance(enable, bool):
             raise TypeError("Button enable is boolean")
@@ -166,10 +170,6 @@ class _Button(_LimitedLabel):
         elif not self._enabled and enable:
             self._style_normal()
         self._enabled = enable
-
-    @enabled.setter
-    def enabled(self, enable):
-        self._set_enabled(enable)
 
     def invoke(self):
         """Click Button"""
@@ -230,14 +230,14 @@ DEFAULT_ICON_COLOURS = IconColours(
     background=styles.DEFAULT_BACKGROUND_COLOUR,
     normal=styles.HIGHLIGHT_BACKGROUND_COLOUR,
     active=styles.Colour(0xffffff),
-    disabled=styles.Colour(0x000000)
+    disabled=styles.Colour(0x000000),
     selected=styles.Colour(0xabb0b8)
 )
 TITLE_ICON_COLOURS = IconColours(
     background=styles.HIGHLIGHT_BACKGROUND_COLOUR,
     normal=styles.Colour(0xabb0b8),
     active=styles.Colour(0xffffff),
-    disabled=styles.Colour(0x000000)
+    disabled=styles.Colour(0x000000),
     selected=styles.Colour(0xabb0b8)
 )
 
@@ -294,7 +294,7 @@ class _RadioButton(_Button):
             if self._enabled:
                 self._style_selected()
             else:
-                raise AttributeException("Cannot select disabled button")
+                raise AttributeError("Cannot select disabled button")
         self._selected = select
 
     def invoke(self):
@@ -330,7 +330,7 @@ TITLE_RADIO_ICON_COLOURS = RadioIconColours(
     selected=TITLE_ICON_COLOURS.active
 )
 
-def IconRadioButton(_RadioButton):
+class IconRadioButton(_RadioButton):
     """RadioButton using image icon"""
     def __init__(self, parent, command, icon_name, enabled=True, selected=True, colours=DEFAULT_RADIO_ICON_COLOURS, **label_kwargs):
         self._normal_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
@@ -391,5 +391,5 @@ class RadioButtonSet:
 
     def deselect_all(self):
         if self._selected is not None:
-            self._button[self._selected].selected = False
+            self._buttons[self._selected].selected = False
             self._selected = None

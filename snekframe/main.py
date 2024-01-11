@@ -100,7 +100,7 @@ class MainWindow:
         self._root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self._root.resizable(False, False)
         self._root.attributes("-fullscreen", True)
-        self._root.configure(background=styles.DEFAULT_BACKGROUND_COLOUR)
+        self._root.configure(background=styles.DEFAULT_BACKGROUND_COLOUR.string)
 
         FONTS.generate()
         STYLES.generate()
