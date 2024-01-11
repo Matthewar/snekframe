@@ -9,36 +9,48 @@ from tkinter import ttk
 from .icons import ICONS
 from . import styles
 
-class _LimitedLabel:
+class _LimitedElement:
+    """Basic element wrapper with limited parameters
+
+    Defaults to no supported element parameters, not intended for this to be used externally
+    """
+    _ELEMENT_KWARGS : set[str] = set()
+
+    def __init__(self, parent, element_cls, user_element_kwargs, **element_kwargs):
+        for key in user_element_kwargs:
+            if key not in self._ELEMENT_KWARGS:
+                raise TypeError(f"Unexpected kwarg '{key}' not allowed in {self.__class__.__name__}")
+
+        all_kwargs = user_element_kwargs | element_kwargs
+        self._element = element_cls(master=parent, **all_kwargs)
+
+    def place(self, **place_kwargs):
+        """Place element in parent"""
+        self._element.place(**place_kwargs)
+
+    def place_forget(self):
+        """Remove element from parent"""
+        self._element.place_forget()
+
+    def grid(self, **grid_kwargs):
+        """Grid element into parent"""
+        self._element.grid(**grid_kwargs)
+
+    def grid_remove(self):
+        """Ungrid element from parent"""
+        self._element.grid_remove()
+
+class _LimitedLabel(_LimitedElement):
     """Basic label wrapper with limited parameters
 
     Defaults to no supported label parameters, not intended for this to be used externally
     """
-    _LABEL_KWARGS : set[str] = set()
-
     def __init__(self, parent, user_label_kwargs, **label_kwargs):
-        for key in user_label_kwargs:
-            if key not in self._LABEL_KWARGS:
-                raise TypeError(f"Unexpected kwarg '{key}' not allowed in constructor")
+        super().__init__(parent, ttk.Label, user_label_kwargs, **label_kwargs)
 
-        all_kwargs = user_label_kwargs | label_kwargs
-        self._label = ttk.Label(master=parent, **all_kwargs)
-
-    def place(self, **place_kwargs):
-        """Place label in parent"""
-        self._label.place(**place_kwargs)
-
-    def place_forget(self):
-        """Remove label from parent"""
-        self._label.place_forget()
-
-    def grid(self, **grid_kwargs):
-        """Grid label into parent"""
-        self._label.grid(**grid_kwargs)
-
-    def grid_remove(self):
-        """Ungrid label from parent"""
-        self._label.grid_remove()
+    @property
+    def _label(self):
+        return self._element
 
 class UpdateLabel(_LimitedLabel):
     """Label with text that can be updated"""
@@ -132,7 +144,7 @@ class AutoUpdateDateLabel(AutoUpdateLabel):
         """Update current time display"""
         self.text = datetime.datetime.now().strftime("%a %d/%m/%Y, %I:%M%p")
 
-class _Button(_LimitedLabel):
+class _Button(_LimitedElement):
     """Custom basic button
 
     - Button 1 -> Switched from normal to active (if not disabled)
@@ -140,8 +152,8 @@ class _Button(_LimitedLabel):
     - Enter -> If still clicked, goes from normal to active
     - Button Release 1 -> Switches from active to normal. Triggers command
     """
-    def __init__(self, parent, command, user_label_kwargs, enabled=True, **label_kwargs):
-        super().__init__(parent, user_label_kwargs, **label_kwargs)
+    def __init__(self, parent, element_cls, command, user_element_kwargs, enabled=True, **element_kwargs):
+        super().__init__(parent, element_cls, user_element_kwargs, **element_kwargs)
         self._setup_bindings()
 
         self._clicked = (False, False)
@@ -179,10 +191,10 @@ class _Button(_LimitedLabel):
         self._command()
 
     def _setup_bindings(self):
-        self._label.bind("<Button-1>", self._callback_click)
-        self._label.bind("<ButtonRelease-1>", self._callback_release)
-        self._label.bind("<Enter>", self._callback_enter)
-        self._label.bind("<Leave>", self._callback_leave)
+        self._element.bind("<Button-1>", self._callback_click)
+        self._element.bind("<ButtonRelease-1>", self._callback_release)
+        self._element.bind("<Enter>", self._callback_enter)
+        self._element.bind("<Leave>", self._callback_leave)
 
     def _callback_click(self, event):
         if not self._enabled:
@@ -248,28 +260,28 @@ class IconButton(_Button):
         self._active_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.active)
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
 
-        super().__init__(parent, command, label_kwargs, enabled=enabled, image=self._normal_icon, background=colours.background.string)
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, image=self._normal_icon, background=colours.background.string)
 
     def _style_normal(self):
-        self._label.configure(image=self._normal_icon)
-        self._label.image = self._normal_icon
+        self._element.configure(image=self._normal_icon)
+        self._element.image = self._normal_icon
 
     def _style_active(self):
-        self._label.configure(image=self._active_icon)
-        self._label.image = self._active_icon
+        self._element.configure(image=self._active_icon)
+        self._element.image = self._active_icon
 
     def _style_disabled(self):
-        self._label.configure(image=self._disabled_icon)
-        self._label.image = self._disabled_icon
+        self._element.configure(image=self._disabled_icon)
+        self._element.image = self._disabled_icon
 
 class _RadioButton(_Button):
     """Button that can be selected"""
-    def __init__(self, parent, command, user_label_kwargs, enabled=True, selected=False, **label_kwargs):
+    def __init__(self, parent, element_cls, command, user_element_kwargs, enabled=True, selected=False, **element_kwargs):
         if selected and not enabled:
             raise AttributeError("Cannot select disabled button")
 
         self._selected = selected
-        super().__init__(parent, command, user_label_kwargs, enabled=enabled, **label_kwargs)
+        super().__init__(parent, element_cls, command, user_element_kwargs, enabled=enabled, **element_kwargs)
 
     def _style_selected(self):
         raise NotImplementedError()
@@ -323,23 +335,23 @@ class IconRadioButton(_RadioButton):
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
         self._selected_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.selected)
 
-        super().__init__(parent, command, label_kwargs, enabled=enabled, selected=selected, image=self._normal_icon, background=colours.background.string)
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, image=self._normal_icon, background=colours.background.string)
 
     def _style_normal(self):
-        self._label.configure(image=self._normal_icon)
-        self._label.image = self._normal_icon
+        self._element.configure(image=self._normal_icon)
+        self._element.image = self._normal_icon
 
     def _style_active(self):
-        self._label.configure(image=self._active_icon)
-        self._label.image = self._active_icon
+        self._element.configure(image=self._active_icon)
+        self._element.image = self._active_icon
 
     def _style_disabled(self):
-        self._label.configure(image=self._disabled_icon)
-        self._label.image = self._disabled_icon
+        self._element.configure(image=self._disabled_icon)
+        self._element.image = self._disabled_icon
 
     def _style_selected(self):
-        self._label.configure(image=self._selected_icon)
-        self._label.image = self._selected_icon
+        self._element.configure(image=self._selected_icon)
+        self._element.image = self._selected_icon
 
 class RadioButtonSet:
     def __init__(self, default_button_cls=IconRadioButton, **default_radio_kwargs):
