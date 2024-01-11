@@ -308,7 +308,7 @@ class _RadioButton(_Button):
         if not self._clicked[0]:
             return
 
-        if not self._clicked[1]:
+        if self._clicked[1]:
             if self._selected:
                 self._style_selected()
             else:
