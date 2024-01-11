@@ -139,6 +139,8 @@ This only supports Python 3.10+ (`UPDATE..RETURNING` is only supported in SQLite
 ```bash
 # Required for GUI
 sudo apt install python3-tk
+# Required for images
+sudo apt install libcairo2-dev
 ```
 
 ### Install Program

@@ -12,7 +12,6 @@ PHOTOS_LOCATION = "files"
 MAX_FILENAME_SIZE = 256
 
 TITLE_BAR_HEIGHT = 75
-TITLE_BAR_COLOUR = "red"
 
 GIT_URL = "https://github.com"
 ORGANISATION = "matthewar"

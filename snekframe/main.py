@@ -8,7 +8,7 @@ import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 
-from . import db
+from . import db, styles
 from .fonts import FONTS
 from .styles import STYLES
 from .params import WINDOW_WIDTH, WINDOW_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION, DATABASE_NAME
@@ -100,6 +100,7 @@ class MainWindow:
         self._root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self._root.resizable(False, False)
         self._root.attributes("-fullscreen", True)
+        self._root.configure(background=styles.DEFAULT_BACKGROUND_COLOUR.string)
 
         FONTS.generate()
         STYLES.generate()

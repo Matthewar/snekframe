@@ -16,7 +16,9 @@ import PIL.Image
 import PIL.ImageTk
 
 from .analyse import load_photo_files, setup_viewed_photos
-from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, TITLE_BAR_COLOUR, FILES_LOCATION, PHOTOS_LOCATION
+from . import elements
+from . import icons
+from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION
 from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList
 from .fonts import FONTS
 from .settings import SettingsWindow, SettingsContainer
@@ -32,176 +34,77 @@ class PhotoTitleBar:
     - Shows time
     """ # TODO: Update
 
-    class Mode(Enum):
-        Settings = auto()
-        PhotosVisible = auto()
-        PhotosHidden = auto()
-        Selection = auto()
+    #class Mode(Enum):
+    #    Settings = auto()
+    #    PhotosVisible = auto() # Rename to gallery?
+    #    PhotosHidden = auto()
+    #    Selection = auto()
 
     def __init__(self, parent, open_selection, open_settings):
         self._frame = ttk.Frame(master=parent, width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT, style="TitleBar.TFrame")
         self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
 
-        self._title_text = tk.StringVar()
-        self._title_label = ttk.Label(master=self._frame, anchor=tk.CENTER, justify=tk.CENTER, textvariable=self._title_text, font=FONTS.title, style="TitleBar.TLabel")
-        self._title_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        self._title = elements.UpdateLabel(self._frame, anchor=tk.CENTER, justify=tk.CENTER, font=FONTS.title, style="TitleBar.TLabel")
+        self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._datetime = datetime.datetime.now()
-        self._datetime_text = tk.StringVar()
-        self._datetime_label = ttk.Label(master=self._frame, anchor="e", justify=tk.RIGHT, textvariable=self._datetime_text, font=FONTS.bold, style="TitleBar.TLabel")
-        self._datetime_label.place(relx=1.0, rely=0.5, anchor="e")
+        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar.TLabel")
+        self._datetime.place(relx=1.0, rely=0.5, anchor="e")
 
-        self._open_selection = open_selection
-        self._open_settings = open_settings
+        title_menu = ttk.Frame(master=self._frame, style="TitleBar.TFrame")
+        title_menu.place(x=2.5, rely=0.5, anchor="w")
+        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, colours=elements.TITLE_ICON_COLOURS)
 
-        self._settings_button = ttk.Button(master=self._frame, text="Settings", command=self._callback_open_settings, style="TitleBar.TButton")
-        self._select_button = ttk.Button(master=self._frame, text="Select Photos", command=self._callback_open_selection, style="TitleBar.TButton")
+        def callback_open_settings():
+            open_settings()
+            self._title.text = "Settings"
 
-        self._settings_button.place(x=5, rely=0.5, anchor="w")
-        self._select_button.place(x=5+self._settings_button.winfo_reqwidth()+5, rely=0.5, anchor="w")
+        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, "settings", selected=False)
+        self._settings_button.grid(row=0, column=0, pady=2.5)
 
-        self._mode = None
-        self._show_title_bar()
+        def callback_open_selection():
+            open_selection()
+            self._title.text = "Select Photos"
 
-    def _callback_open_settings(self):
-        if not self._settings_button.instate(["disabled"]):
-            self._open_settings()
+        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, "slideshow", selected=False)
+        self._select_button.grid(row=0, column=1, pady=2.5)
 
-    def _callback_open_selection(self):
-        if not self._select_button.instate(["disabled"]):
-            self._open_selection()
-
-    def _show_title_bar(self):
-        self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
-        self._frame.tkraise()
-        self._update_datetime()
+        self._visible = False
 
     @property
-    def _is_visible(self):
-        return self._mode != self.Mode.PhotosHidden
+    def visible(self):
+        """If the title bar is visible"""
+        return self._visible
 
-    def _update_datetime(self):
-        self._datetime = datetime.datetime.now()
-        self._datetime_text.set(self._datetime.strftime("%a %d/%m/%Y, %I:%M%p"))
-        if self._is_visible: # How many times can this be spawned?
-            self._datetime_label.after(10000, self._update_datetime)
+    def place(self, unpause_datetime=True):
+        self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
+        self._frame.tkraise()
+        if unpause_datetime:
+            self._datetime.update_label()
+        self._visible = True
 
-    def show_photo_title(self, title=None):
-        if self._mode == self.Mode.PhotosVisible:
-            if title is None:
-                raise Exception()
-            self._title_text.set(title)
-        elif self._mode == self.Mode.Settings:
-            if title is None:
-                raise Exception()
-            self._settings_button.state(["!disabled"])
-            self._title_text.set(title)
-        elif self._mode == self.Mode.PhotosHidden:
-            if title is not None:
-                self._title_text.set(title)
-            self._show_title_bar()
-            self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
-        elif self._mode == self.Mode.Selection:
-            if title is None:
-                raise Exception()
-            self._title_text.set(title)
-            self._select_button.state(["!disabled"])
-        elif self._mode is None:
-            # Only occurs on startup
-            if title is None:
-                raise Exception()
-            self._settings_button.state(["!disabled"])
-            self._select_button.state(["!disabled"])
-            self._title_text.set(title)
-            self._show_title_bar()
-        else:
-            logging.error("In unknown mode '%s'", self._mode)
+    def place_forget(self, pause_datetime=True):
+        self._frame.place_forget()
+        if pause_datetime:
+            self._datetime.pause_updates()
+        self._visible = False
 
-        self._mode = self.Mode.PhotosVisible
+    def display_photo_title(self, title):
+        self._title.text = title
+        self._title_menu_buttons.deselect_all()
 
-    def hide_photo_title(self, title=None):
-        if self._mode == self.Mode.PhotosHidden:
-            if title is None:
-                raise Exception()
-            self._title_text.set(title)
-        elif self._mode == self.Mode.PhotosVisible:
-            if title is not None:
-                self._title_text.set(title)
-            self._frame.place_forget()
-        elif self._mode == self.Mode.Settings:
-            if title is None:
-                raise Exception()
-            self._settings_button.state(["!disabled"])
-            self._title_text.set(title)
-            self._frame.place_forget()
-        elif self._mode == self.Mode.Selection:
-            if title is None:
-                raise Exception()
-            self._select_button.state(["!disabled"])
-            self._title_text.set(title)
-        elif self._mode is None:
-            # Only occurs on startup
-            if title is None:
-                raise Exception()
-            self._settings_button.state(["!disabled"])
-            self._select_button.state(["!disabled"])
-            self._title_text.set(title)
-            self._frame.place_forget()
-        else:
-            logging.error("In unknown mode '%s'", self._mode)
+    def invoke_settings_button(self):
+        """Invoke the settings button
 
-        self._mode = self.Mode.PhotosHidden
+        This will trigger updating this class for settings along with the settings callback triggers
+        """
+        self._settings_button.invoke()
 
-    def show_selection(self):
-        if self._mode == self.Mode.Selection:
-            # Do nothing
-            logging.info("Called when already in mode")
-        elif self._mode == self.Mode.PhotosVisible:
-            self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
-        elif self._mode == self.Mode.PhotosHidden:
-            self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
-            self._show_title_bar()
-        elif self._mode == self.Mode.Settings:
-            self._settings_button.state(["!disabled"])
-            self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
-        elif self._mode is None:
-            # Only occurs on startup
-            self._settings_button.state(["!disabled"])
-            self._select_button.state(["disabled"])
-            self._title_text.set("Select Photos")
-            self._show_title_bar()
-        else:
-            logging.error("In unknown mode '%s'", self._mode)
+    def invoke_selection_button(self):
+        """Invoke the photo selection button
 
-        self._mode = self.Mode.Selection
-
-    def show_settings(self):
-        if self._mode == self.Mode.Settings:
-            # Do nothing
-            logging.info("Called when already in mode")
-        elif self._mode == self.Mode.PhotosVisible:
-            self._settings_button.state(["disabled"])
-            self._title_text.set("Settings")
-        elif self._mode == self.Mode.PhotosHidden:
-            self._settings_button.state(["disabled"])
-            self._title_text.set("Settings")
-            self._show_title_bar()
-        elif self._mode == self.Mode.Selection:
-            self._settings_button.state(["disabled"])
-            self._select_button.state(["!disabled"])
-            self._title_text.set("Settings")
-        elif self._mode is None:
-            self._settings_button.state(["disabled"])
-            self._select_button.state(["!disabled"])
-            self._title_text.set("Settings")
-            self._show_title_bar()
-        else:
-            logging.error("In unknown mode '%s'", self._mode)
-
-        self._mode = self.Mode.Settings
+        This will trigger updating this class for selection along with the selection callback triggers
+        """
+        self._select_button.invoke()
 
 class PhotoSelectionWindow:
     """Allows user to select which photos to display"""
@@ -726,7 +629,7 @@ class PhotoWindow:
         self._current_window = None
 
         if not self._selection.photos_selected:
-            self._open_photo_select_window()
+            self._title_bar.invoke_selection_button()
         else:
             self._open_photo_display_window()
 
@@ -751,11 +654,12 @@ class PhotoWindow:
         self._current_window = None
 
     def _open_photo_select_window(self):
+        if not self._title_bar.visible:
+            self._title_bar.place()
         self._close_current_window()
 
         if self._selection_window is None:
             self._selection_window = PhotoSelectionWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._callback_open_photo_display_window)
-        self._title_bar.show_selection()
         self._selection_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
         self._current_window = self.OpenWindow.Select
 
@@ -779,18 +683,20 @@ class PhotoWindow:
         return setup_viewed_photos(shuffle=self._settings.shuffle_photos, album=album)
 
     def _open_photo_display_window(self, regenerate=False):
-        # TODO: Regenerate if settings change
+        # TODO: Regenerate if settings change (rescan done)
+        if self._title_bar.visible:
+            self._title_bar.place_forget()
         self._close_current_window()
 
         if self._display_window is None:
-            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._settings, self._title_bar.show_photo_title, self._title_bar.hide_photo_title)
+            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._settings, self._title_bar.place, self._title_bar.place_forget)
         elif regenerate:
             self._display_window.regenerate_window()
 
         if self._selection.all_photos_selected:
-            self._title_bar.hide_photo_title("All Photos")
+            self._title_bar.display_photo_title("All Photos")
         else:
-            self._title_bar.hide_photo_title(self._selection.album)
+            self._title_bar.display_photo_title(self._selection.album)
 
         self._display_window.place(x=0, y=0, anchor="nw")
         self._current_window = self.OpenWindow.Display
@@ -800,13 +706,18 @@ class PhotoWindow:
             self._display_window.place_forget()
             del self._display_window
             self._display_window = None
+        if self._selection_window is not None:
+            self._selection_window.place_forget()
+            del self._selection_window
+            self._selection_window = None
 
     def _open_settings(self):
+        if not self._title_bar.visible:
+            self._title_bar.place()
         self._close_current_window()
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
             self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._settings, self._destroy_photo_window)
-        self._title_bar.show_settings()
         self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
         self._current_window = self.OpenWindow.Settings
