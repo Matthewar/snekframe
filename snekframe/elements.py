@@ -248,7 +248,7 @@ class IconButton(_Button):
         self._active_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.active)
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
 
-        super().__init__(parent, command, label_kwargs, enabled=enabled, image=self._normal_icon)
+        super().__init__(parent, command, label_kwargs, enabled=enabled, image=self._normal_icon, background=colours.background.string)
 
     def _style_normal(self):
         self._label.configure(image=self._normal_icon)
@@ -323,7 +323,7 @@ class IconRadioButton(_RadioButton):
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
         self._selected_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.selected)
 
-        super().__init__(parent, command, label_kwargs, enabled=enabled, selected=selected, image=self._normal_icon)
+        super().__init__(parent, command, label_kwargs, enabled=enabled, selected=selected, image=self._normal_icon, background=colours.background.string)
 
     def _style_normal(self):
         self._label.configure(image=self._normal_icon)
