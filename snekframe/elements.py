@@ -107,7 +107,7 @@ class AutoUpdateLabel(UpdateLabel):
         """
         if unpause_updates:
             self.update_label()
-        super().place_forget()
+        super().place(**place_kwargs)
 
     def place_forget(self, pause_updates=True):
         """Remove label from parent
