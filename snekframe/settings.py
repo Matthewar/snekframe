@@ -440,7 +440,7 @@ class SettingsWindow:
         if not found_photos:
             self._photo_selection.set_no_selection()
         self._shuffle_trigger_button.state([self._get_shuffle_trigger_state()])
-        self._destroy_display_window() # TODO: Redraw photo select window
+        self._destroy_display_window()
 
     def _get_ip_addr(self):
         found_ip = False
