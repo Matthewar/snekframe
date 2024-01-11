@@ -358,7 +358,7 @@ class RadioButtonSet:
         button_id = self._next_id
         self._next_id += 1
 
-        def _update_buttons(event):
+        def _update_buttons():
             if self._selected is not None:
                 self._buttons[self._selected].selected = False
             self._selected = button_id
