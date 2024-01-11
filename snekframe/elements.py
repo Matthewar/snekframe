@@ -238,7 +238,7 @@ TITLE_ICON_COLOURS = IconColours(
     normal=styles.Colour(0xabb0b8),
     active=styles.Colour(0xffffff),
     disabled=styles.Colour(0x000000),
-    selected=styles.Colour(0xabb0b8)
+    selected=styles.Colour(0xffffff)
 )
 
 class IconButton(_Button):
