@@ -701,12 +701,12 @@ class PhotoWindow:
         self._display_window.place(x=0, y=0, anchor="nw")
         self._current_window = self.OpenWindow.Display
 
-    def _destroy_photo_window(self):
-        if self._display_window is not None:
+    def _destroy_photo_window(self, display_window=True, selection_window=True):
+        if self._display_window is not None and display_window:
             self._display_window.place_forget()
             del self._display_window
             self._display_window = None
-        if self._selection_window is not None:
+        if self._selection_window is not None and selection_window:
             self._selection_window.place_forget()
             del self._selection_window
             self._selection_window = None
@@ -718,6 +718,6 @@ class PhotoWindow:
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
-            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._settings, self._destroy_photo_window)
-        self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
+            self._settings_window = SettingsWindow(self._window, self._selection, self._settings, self._destroy_photo_window)
+        self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.Settings

@@ -13,6 +13,12 @@ class _LimitedElement:
     """Basic element wrapper with limited parameters
 
     Defaults to no supported element parameters, not intended for this to be used externally
+
+    Element requires methods:
+    - place
+    - place_forget
+    - grid
+    - grid_remove
     """
     _ELEMENT_KWARGS : set[str] = set()
 
@@ -52,12 +58,24 @@ class _LimitedLabel(_LimitedElement):
     def _label(self):
         return self._element
 
+class LimitedFrameBaseElement(_LimitedElement):
+    """Basic element to build from with a frame
+
+    Defaults to no supported frame parameters, intended to only be used as a parent
+    """
+    def __init__(self, parent, user_frame_kwargs, **frame_kwargs):
+        super().__init__(parent, ttk.Frame, user_frame_kwargs, **frame_kwargs)
+
+    @property
+    def _frame(self):
+        return self._element
+
 class UpdateLabel(_LimitedLabel):
     """Label with text that can be updated"""
     _LABEL_KWARGS = set(("anchor", "justify", "font", "style"))
 
-    def __init__(self, parent, initialtext=None, **label_kwargs):
-        self._text = tk.StringVar(value=initialtext)
+    def __init__(self, parent, initialtext=None, variabletype=tk.StringVar, **label_kwargs):
+        self._text = variabletype(value=initialtext)
         super().__init__(parent, label_kwargs, textvariable=self._text)
 
     @property
@@ -130,6 +148,24 @@ class AutoUpdateLabel(UpdateLabel):
             self.pause_updates()
         super().place_forget()
 
+    def grid(self, unpause_updates=True, **grid_kwargs):
+        """Add label to parent grid
+
+        Defaults to start updating the label
+        """
+        if unpause_updates:
+            self.update_label()
+        super().grid(**grid_kwargs)
+
+    def grid_remove(self, pause_updates=True):
+        """Remove label from parent
+
+        Defaults to pause updating the label
+        """
+        if pause_updates:
+            self.pause_updates()
+        super().grid_remove()
+
 class AutoUpdateDateLabel(AutoUpdateLabel):
     """Label with datetime that auto updates"""
 
@@ -151,6 +187,9 @@ class _Button(_LimitedElement):
     - Leave -> If clicked, goes from active to normal
     - Enter -> If still clicked, goes from normal to active
     - Button Release 1 -> Switches from active to normal. Triggers command
+
+    Element additionally requires methods:
+    - bind
     """
     def __init__(self, parent, element_cls, command, user_element_kwargs, enabled=True, **element_kwargs):
         super().__init__(parent, element_cls, user_element_kwargs, **element_kwargs)
@@ -235,6 +274,46 @@ class _Button(_LimitedElement):
 
     def _style_disabled(self):
         raise NotImplementedError()
+
+TextColours = collections.namedtuple(
+    "TextColours",
+    ["normal_background", "active_background", "disabled_background", "selected_background", "normal_font", "selected_font"]
+)
+
+DEFAULT_TEXTBUTTON_COLOURS = TextColours(
+    normal_background=styles.DEFAULT_BACKGROUND_COLOUR,
+    active_background=styles.Colour(0xffffff),
+    disabled_background=styles.Colour(0x000000),
+    selected_background=styles.Colour(0xffffff),
+    normal_font=styles.Colour(0xffffff),
+    selected_font=styles.Colour(0x000000)
+)
+
+class TextButton(_Button):
+    """Regular button using text label
+
+    Colour changing occurs for the background
+    """
+    def __init__(self, parent, command, text=None, enabled=True, colours=DEFAULT_TEXTBUTTON_COLOURS, **label_kwargs):
+        if text is None:
+            raise TypeError()
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, background=colours.normal_background.string, foreground=colours.font.string)
+        self._colours = colours
+
+    def _style_normal(self):
+        self._element.configure(
+            background=self._colours.normal_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_active(self):
+        self._element.configure(
+            background=self._colours.active_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_disabled(self):
+        self._element.configure(
+            background=self._colours.disabled_background.string,
+            foreground=self._colours.normal_font.string)
 
 IconColours = collections.namedtuple("IconColours", ["normal", "active", "disabled", "selected", "background"])
 
@@ -327,9 +406,47 @@ class _RadioButton(_Button):
                 self._style_normal()
         self._clicked = (True, False)
 
+class TextRadioButton(_RadioButton):
+    """RadioButton using text label
+
+    Colour changing occurs for the background
+    """
+    _LABEL_KWARGS = set(("anchor", "justify", "font"))
+
+    def __init__(self, parent, command, text=None, enabled=True, selected=True, colours=DEFAULT_TEXTBUTTON_COLOURS, **label_kwargs):
+        if text is None:
+            raise TypeError()
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, background=colours.normal_background.string, foreground=colours.font.string)
+        self._colours = colours
+
+    def _style_normal(self):
+        self._element.configure(
+            background=self._colours.normal_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_active(self):
+        self._element.configure(
+            background=self._colours.active_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_disabled(self):
+        self._element.configure(
+            background=self._colours.disabled_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_selected(self):
+        self._element.configure(
+            background=self._colours.selected_background.string,
+            foreground=self._colours.selected_font.string)
+
 class IconRadioButton(_RadioButton):
-    """RadioButton using image icon"""
-    def __init__(self, parent, command, icon_name, enabled=True, selected=True, colours=DEFAULT_ICON_COLOURS, **label_kwargs):
+    """RadioButton using image icon
+
+    Colour changing occurs for the icon
+    """
+    def __init__(self, parent, command, icon_name=None, enabled=True, selected=True, colours=DEFAULT_ICON_COLOURS, **label_kwargs):
+        if icon_name is None:
+            raise TypeError()
         self._normal_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
         self._active_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.active)
         self._disabled_icon = ICONS.get(icon_name, background=colours.background, pathcolour=colours.disabled)
@@ -353,6 +470,48 @@ class IconRadioButton(_RadioButton):
         self._element.configure(image=self._selected_icon)
         self._element.image = self._selected_icon
 
+class IconTextRadioButton(_RadioButton):
+    """RadioButton with icon and image
+
+    Colour changing affects the background of the icon and text
+    """
+    def __init__(self, parent, command, text=None, icon_name=None, enabled=True, selected=True, colours=DEFAULT_ICON_COLOURS):
+        if text is None or icon_name is None:
+            raise TypeError()
+        super().__init__(parent, ttk.Frame, command, {}, enabled=enabled, selected=selected, background=colours.background.string)
+
+        self._colours = colours
+
+        icon_image = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
+        self._icon = ttk.Label(master=self._element, image=icon_image, background=colours.background.string)
+        self._text = ttk.Label(master=self._element, text=text, background=colours.background.string, foreground="white") # TODO Colour
+        self._icon.grid(row=0, column=0, padx=(5.0, 2.5))
+        self._text.grid(row=0, column=1, padx=(2.5, 5.0))
+
+    def _style_normal(self):
+        normal_background = self._colours.background.string
+
+        self._element.configure(background=normal_background)
+        self._icon.configure(background=normal_background)
+        self._text.configure(background=normal_background)
+
+    def _style_active(self):
+        active_background = self._colours.active.string
+
+        self._element.configure(background=active_background)
+        self._icon.configure(background=active_background)
+        self._text.configure(background=active_background)
+
+    def _style_disabled(self):
+        disabled_background = self._colours.disabled.string
+
+        self._element.configure(background=disabled_background)
+        self._icon.configure(background=disabled_background)
+        self._text.configure(background=disabled_background)
+
+    def _style_selected(self):
+        return self._style_active()
+
 class RadioButtonSet:
     def __init__(self, default_button_cls=IconRadioButton, **default_radio_kwargs):
         self._default_button_cls = default_button_cls
@@ -361,7 +520,7 @@ class RadioButtonSet:
         self._next_id = 0
         self._selected = None
 
-    def add_button(self, parent, command, icon_name, enabled=True, selected=False, button_cls=None, **radio_kwargs):
+    def add_button(self, parent, command, enabled=True, selected=False, button_cls=None, **radio_kwargs):
         if selected and self._selected is not None:
             raise AttributeError("Can only have one selected button")
         if button_cls is None:
@@ -380,7 +539,7 @@ class RadioButtonSet:
         button_kwargs = self._default_radio_kwargs.copy()
         button_kwargs.update(radio_kwargs)
 
-        self._buttons[button_id] = button_cls(parent, _update_buttons, icon_name, enabled=enabled, selected=selected, **button_kwargs)
+        self._buttons[button_id] = button_cls(parent, _update_buttons, enabled=enabled, selected=selected, **button_kwargs)
         if selected:
             self._selected = button_id
 
@@ -390,3 +549,59 @@ class RadioButtonSet:
         if self._selected is not None:
             self._buttons[self._selected].selected = False
             self._selected = None
+
+class _ToggleButton(_RadioButton):
+    def __init__(self, parent, element_cls, select_command, unselect_command, user_element_kwargs, enabled=True, selected=False, **element_kwargs):
+        super().__init__(parent, element_cls, select_command, user_element_kwargs, enabled=enabled, selected=selected, **element_kwargs)
+        self._unselect_command = unselect_command
+
+    def invoke(self):
+        if not self._enabled:
+            # Don't trigger is already selected
+            return
+
+        if not self._selected:
+            self._unselect_command()
+            self._style_normal()
+        else:
+            self._command()
+            self._style_selected()
+
+class TextToggleButton(_ToggleButton):
+    def __init__(self, parent, select_command, unselect_command, text=None, selected_text=None, enabled=True, selected=False, colours=DEFAULT_TEXTBUTTON_COLOURS, **label_kwargs):
+        if text is None:
+            raise TypeError()
+        self._unselected_text = text
+        if selected_text is not None:
+            self._selected_text = text
+
+        if selected:
+            initialtext = self._selected_text
+        else:
+            initialtext = self._unselected_text
+
+        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, text=initialtext, background=colours.normal_background.string, foreground=colours.font.string)
+
+        self._colours = colours
+
+    def _style_normal(self):
+        self._element.configure(
+            background=self._colours.normal_background.string,
+            foreground=self._colours.normal_font.string,
+            text=self._unselected_text)
+
+    def _style_active(self):
+        self._element.configure(
+            background=self._colours.active_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_disabled(self):
+        self._element.configure(
+            background=self._colours.disabled_background.string,
+            foreground=self._colours.normal_font.string)
+
+    def _style_selected(self):
+        self._element.configure(
+            background=self._colours.selected_background.string,
+            foreground=self._colours.selected_font.string,
+            text=self._selected_text)
