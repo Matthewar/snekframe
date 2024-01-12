@@ -58,14 +58,14 @@ class PhotoTitleBar:
             open_settings()
             self._title.text = "Settings"
 
-        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, "settings", selected=False)
+        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, icon_name="settings", selected=False)
         self._settings_button.grid(row=0, column=0, pady=2.5)
 
         def callback_open_selection():
             open_selection()
             self._title.text = "Select Photos"
 
-        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, "slideshow", selected=False)
+        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
         self._select_button.grid(row=0, column=1, pady=2.5)
 
         self._visible = False

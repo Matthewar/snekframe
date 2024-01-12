@@ -113,10 +113,10 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
 
         menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton, colours=elements.DEFAULT_ICON_COLOURS)
 
-        self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, "Photos", icon_name="photo", selected=False)
+        self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
         self._photo_settings_button.grid(row=0, column=0)
 
-        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, "System", icon_name="computer", selected=False)
+        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="computer", selected=False)
         system_settings_button.grid(row=1, column=0)
 
         self._frame.grid_rowconfigure(2, weight=1)
@@ -131,7 +131,7 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
 
 class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent, settings_container, reorder_photos, destroy_photo_window):
-        super().__init__(parent, {}, background=styles.DEFAULT_BACKGROUND_COLOUR.string)
+        super().__init__(parent, {})
 
         shuffle_buttons = elements.RadioButtonSet(default_button_cls=elements.TextRadioButton)
 
@@ -158,10 +158,10 @@ class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
         shuffle_on_button = shuffle_buttons.add_button(self._frame, shuffle_photos, selected=False, text="On")
         shuffle_on_button.grid(row=0, column=3)
 
-        self._frame.grid_columnconfigure(0, weight=1)
-        self._frame.grid_columnconfigure(2, weight=0.5)
-        self._frame.grid_columnconfigure(4, weight=0.5)
-        self._frame.grid_columnconfigure(6, weight=1)
+        self._frame.grid_columnconfigure(0, weight=2)
+        self._frame.grid_columnconfigure(2, weight=1)
+        self._frame.grid_columnconfigure(4, weight=1)
+        self._frame.grid_columnconfigure(6, weight=2)
 
 class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
 
@@ -180,7 +180,7 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
     )
 
     def __init__(self, parent, settings_container):
-        super().__init__(parent, {}, background=styles.DEFAULT_BACKGROUND_COLOUR.string)
+        super().__init__(parent, {})
 
         self._settings_container = settings_container
 
@@ -244,7 +244,7 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
 
 class PhotoSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent, settings_container, photo_selection, destroy_photo_window):
-        super().__init__(parent, {}, background=styles.DEFAULT_BACKGROUND_COLOUR.string)
+        super().__init__(parent, {})
 
         self._settings_container = settings_container
         self._photo_selection = photo_selection
@@ -375,7 +375,7 @@ class AutoUpdateIPLabel(elements.AutoUpdateLabel):
 class _SystemCallWindow(elements.LimitedFrameBaseElement):
     """Window to manage a shutdown or restart"""
     def __init__(self, parent, button_command_text, info_display_text):
-        super().__init__(parent, {}, background=styles.DEFAULT_BACKGROUND_COLOUR.string)
+        super().__init__(parent, {})
 
         self._info_display_text = info_display_text
 
@@ -452,7 +452,7 @@ class _RestartCallWindow(_SystemCallWindow):
 
 class SystemSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent):
-        super().__init__(parent, {}, background=styles.DEFAULT_BACKGROUND_COLOUR.string)
+        super().__init__(parent, {})
 
         row = 1
         LEFTCOLUMN = 1
@@ -567,7 +567,7 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         self._upgrade_button.enabled = False
         self._check_upgrade_button.enabled = False
         self._upgrade_available = None
-        self._upgrade_info_label = "Checking for new versions"
+        self._upgrade_info_label.text = "Checking for new versions"
         self._upgrade_check_thread = threading.Thread(target=self._thread_check_upgrade)
         self._upgrade_check_thread.start()
         self._check_upgrade_complete()

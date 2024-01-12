@@ -19,6 +19,8 @@ class _LimitedElement:
     - place_forget
     - grid
     - grid_remove
+    - after
+    - after_cancel
     """
     _ELEMENT_KWARGS : set[str] = set()
 
@@ -46,6 +48,14 @@ class _LimitedElement:
         """Ungrid element from parent"""
         self._element.grid_remove()
 
+    def after(self, *after_args):
+        """Underlying element after callback"""
+        return self._element.after(*after_args)
+
+    def after_cancel(self, *after_args):
+        """Underlying element after_cancel callback"""
+        return self._element.after_cancel(*after_args)
+
 class _LimitedLabel(_LimitedElement):
     """Basic label wrapper with limited parameters
 
@@ -72,7 +82,7 @@ class LimitedFrameBaseElement(_LimitedElement):
 
 class UpdateLabel(_LimitedLabel):
     """Label with text that can be updated"""
-    _LABEL_KWARGS = set(("anchor", "justify", "font", "style"))
+    _ELEMENT_KWARGS = set(("anchor", "justify", "font", "style"))
 
     def __init__(self, parent, initialtext=None, variabletype=tk.StringVar, **label_kwargs):
         self._text = variabletype(value=initialtext)
@@ -297,23 +307,28 @@ class TextButton(_Button):
     def __init__(self, parent, command, text=None, enabled=True, colours=DEFAULT_TEXTBUTTON_COLOURS, **label_kwargs):
         if text is None:
             raise TypeError()
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, background=colours.normal_background.string, foreground=colours.font.string)
         self._colours = colours
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, background=colours.normal_background.string, foreground=colours.normal_font.string)
 
     def _style_normal(self):
         self._element.configure(
-            background=self._colours.normal_background.string,
-            foreground=self._colours.normal_font.string)
+            style="Default.Button.TFrame")
+            #TODO Fix
+            #background=self._colours.normal_background.string,
+            #foreground=self._colours.normal_font.string)
 
     def _style_active(self):
         self._element.configure(
-            background=self._colours.active_background.string,
-            foreground=self._colours.normal_font.string)
+            style="Active.Default.Button.TFrame")
+            #TODO Fix
+            #background=self._colours.active_background.string,
+            #foreground=self._colours.normal_font.string)
 
     def _style_disabled(self):
-        self._element.configure(
-            background=self._colours.disabled_background.string,
-            foreground=self._colours.normal_font.string)
+        self._element.configure(style="Disabled.Default.Button.TFrame")
+            #TODO Fix
+            #background=self._colours.disabled_background.string,
+            #foreground=self._colours.normal_font.string)
 
 IconColours = collections.namedtuple("IconColours", ["normal", "active", "disabled", "selected", "background"])
 
@@ -416,8 +431,10 @@ class TextRadioButton(_RadioButton):
     def __init__(self, parent, command, text=None, enabled=True, selected=True, colours=DEFAULT_TEXTBUTTON_COLOURS, **label_kwargs):
         if text is None:
             raise TypeError()
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, background=colours.normal_background.string, foreground=colours.font.string)
+
         self._colours = colours
+
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, background=colours.normal_background.string, foreground=colours.normal_font.string)
 
     def _style_normal(self):
         self._element.configure(
@@ -475,42 +492,68 @@ class IconTextRadioButton(_RadioButton):
 
     Colour changing affects the background of the icon and text
     """
+    class _IconTextElement(LimitedFrameBaseElement):
+        def __init__(self, master=None, text=None, icon_name=None, colours=None):
+            if master is None or text is None or icon_name is None or colours is None:
+                raise TypeError()
+
+            super().__init__(master, {})
+
+            self._colours = colours
+
+            icon_image = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
+            self._icon = ttk.Label(master=self._frame, image=icon_image, background=colours.background.string)
+            self._text = ttk.Label(master=self._frame, text=text, background=colours.background.string, foreground="white") # TODO Colour
+            self._icon.grid(row=0, column=0, padx=(5.0, 2.5))
+            self._text.grid(row=0, column=1, padx=(2.5, 5.0))
+
+        def style_normal(self):
+            normal_background = self._colours.background.string
+
+            #TODO Fix
+            #self._frame.configure(background=normal_background)
+            self._frame.configure(style="Default.Button.TFrame")
+            self._icon.configure(background=normal_background)
+            self._text.configure(background=normal_background)
+
+        def style_active(self):
+            active_background = self._colours.active.string
+
+            #TODO Fix
+            #self._frame.configure(background=active_background)
+            self._frame.configure(style="Active.Default.Button.TFrame")
+            self._icon.configure(background=active_background)
+            self._text.configure(background=active_background)
+
+        def style_disabled(self):
+            disabled_background = self._colours.disabled.string
+
+            #TODO Fix
+            #self._frame.configure(background=disabled_background)
+            self._frame.configure(style="Disabled.Default.Button.TFrame")
+            self._icon.configure(background=disabled_background)
+            self._text.configure(background=disabled_background)
+
+        def style_selected(self):
+            return self.style_active()
+
+        def bind(self, *bind_args, **bind_kwargs):
+            self._frame.bind(*bind_args, **bind_kwargs)
+
     def __init__(self, parent, command, text=None, icon_name=None, enabled=True, selected=True, colours=DEFAULT_ICON_COLOURS):
-        if text is None or icon_name is None:
-            raise TypeError()
-        super().__init__(parent, ttk.Frame, command, {}, enabled=enabled, selected=selected, background=colours.background.string)
-
-        self._colours = colours
-
-        icon_image = ICONS.get(icon_name, background=colours.background, pathcolour=colours.normal)
-        self._icon = ttk.Label(master=self._element, image=icon_image, background=colours.background.string)
-        self._text = ttk.Label(master=self._element, text=text, background=colours.background.string, foreground="white") # TODO Colour
-        self._icon.grid(row=0, column=0, padx=(5.0, 2.5))
-        self._text.grid(row=0, column=1, padx=(2.5, 5.0))
+        super().__init__(parent, self._IconTextElement, command, {}, text=text, icon_name=icon_name, enabled=enabled, selected=selected, colours=colours) # TODO: Style changes
 
     def _style_normal(self):
-        normal_background = self._colours.background.string
-
-        self._element.configure(background=normal_background)
-        self._icon.configure(background=normal_background)
-        self._text.configure(background=normal_background)
+        self._element.style_normal()
 
     def _style_active(self):
-        active_background = self._colours.active.string
-
-        self._element.configure(background=active_background)
-        self._icon.configure(background=active_background)
-        self._text.configure(background=active_background)
+        self._element.style_active()
 
     def _style_disabled(self):
-        disabled_background = self._colours.disabled.string
-
-        self._element.configure(background=disabled_background)
-        self._icon.configure(background=disabled_background)
-        self._text.configure(background=disabled_background)
+        self._element.style_disabled()
 
     def _style_selected(self):
-        return self._style_active()
+        self._element.style_selected()
 
 class RadioButtonSet:
     def __init__(self, default_button_cls=IconRadioButton, **default_radio_kwargs):
@@ -580,9 +623,9 @@ class TextToggleButton(_ToggleButton):
         else:
             initialtext = self._unselected_text
 
-        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, text=initialtext, background=colours.normal_background.string, foreground=colours.font.string)
-
         self._colours = colours
+
+        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, text=initialtext, background=colours.normal_background.string, foreground=colours.normal_font.string)
 
     def _style_normal(self):
         self._element.configure(

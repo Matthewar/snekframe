@@ -42,6 +42,12 @@ class _StyleGenerator:
     def generate(self):
         styles = ttk.Style()
         styles.configure("TFrame", background=DEFAULT_BACKGROUND_COLOUR.string)
+
+        styles.configure("Default.Button.TFrame", background=DEFAULT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+        styles.configure("Active.Default.Button.TFrame", background="#ffffff")
+        styles.configure("Disabled.Default.Button.TFrame", background="#000000")
+        styles.configure("Selected.Default.Button.TFrame", background="#ffffff", foreground="#000000")
+
         styles.configure("TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("TButton", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR.string)
