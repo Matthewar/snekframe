@@ -43,7 +43,7 @@ class PhotoTitleBar:
 
         title_menu = ttk.Frame(master=self._frame, style="TitleBar.TFrame")
         title_menu.place(x=2.5, rely=0.5, anchor="w")
-        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, colours=elements.TITLE_ICON_COLOURS)
+        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, style="Title")
 
         def callback_open_settings():
             open_settings()

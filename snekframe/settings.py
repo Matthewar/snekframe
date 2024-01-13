@@ -111,7 +111,7 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
     def __init__(self, parent, open_photo_settings, open_system_settings):
         super().__init__(parent, {})
 
-        menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton, colours=elements.DEFAULT_ICON_COLOURS)
+        menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton)
 
         self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
         self._photo_settings_button.grid(row=0, column=0)
