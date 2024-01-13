@@ -648,6 +648,7 @@ class SettingsWindow:
         if self._system_window is None:
             self._system_window = SystemSettings(self._main_window)
         self._system_window.place(x=self._menu.winfo_reqwidth(), y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH-self._menu.winfo_reqwidth())
+        self._current_window = self.OpenWindow.System
 
     def place(self, **place_kwargs):
         self._main_window.place(**place_kwargs)

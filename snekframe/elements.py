@@ -458,7 +458,7 @@ class IconTextRadioButton(_RadioButton):
             self._normal_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"{self._style}.TLabel"])
             self._active_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Active.{self._style}.TLabel"])
             self._disabled_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Disabled.{self._style}.TLabel"])
-            self._disabled_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Selected.{self._style}.TLabel"])
+            self._selected_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Selected.{self._style}.TLabel"])
 
             self._icon = ttk.Label(master=self._frame, image=self._normal_icon, style="{self._style}.TLabel")
             self._text = ttk.Label(master=self._frame, text=text, style="{self._style}.TLabel")
@@ -473,7 +473,7 @@ class IconTextRadioButton(_RadioButton):
                 image=self._normal_icon
             )
             self._icon.image = self._normal_icon
-            self._text.configure(f"{self._style}.TLabel")
+            self._text.configure(style=f"{self._style}.TLabel")
 
         def style_active(self):
             self._frame.configure(style=f"Active.{self._style}.TFrame")
@@ -482,7 +482,7 @@ class IconTextRadioButton(_RadioButton):
                 image=self._active_icon
             )
             self._icon.image = self._active_icon
-            self._text.configure(f"Active.{self._style}.TLabel")
+            self._text.configure(style=f"Active.{self._style}.TLabel")
 
         def style_disabled(self):
             self._frame.configure(style=f"Disabled.{self._style}.TFrame")
@@ -491,10 +491,16 @@ class IconTextRadioButton(_RadioButton):
                 image=self._disabled_icon
             )
             self._icon.image = self._disabled_icon
-            self._text.configure(f"Disabled.{self._style}.TLabel")
+            self._text.configure(style=f"Disabled.{self._style}.TLabel")
 
         def style_selected(self):
-            return self.style_active()
+            self._frame.configure(style=f"Selected.{self._style}.TFrame")
+            self._icon.configure(
+                style=f"Selected.{self._style}.TLabel",
+                image=self._selected_icon
+            )
+            self._icon.image = self._selected_icon
+            self._text.configure(style=f"Selected.{self._style}.TLabel")
 
         def bind(self, event, *bind_args, **bind_kwargs):
             if event in ("<Button-1>", "<ButtonRelease-1>"):

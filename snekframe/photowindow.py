@@ -35,11 +35,11 @@ class PhotoTitleBar:
     def __init__(self, parent, open_selection, open_settings):
         self._frame = ttk.Frame(master=parent, style="TitleBar.TFrame")
 
-        self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar.TLabel")
+        self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
         self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar.TLabel")
-        self._datetime.place(relx=1.0, rely=0.5, anchor="e", pady=15)
+        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar")
+        self._datetime.place(x=WINDOW_WIDTH-15, rely=0.5, anchor="e")
 
         title_menu = ttk.Frame(master=self._frame, style="TitleBar.TFrame")
         title_menu.place(x=2.5, rely=0.5, anchor="w")
@@ -50,14 +50,14 @@ class PhotoTitleBar:
             self._title.text = "Settings"
 
         self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, icon_name="settings", selected=False)
-        self._settings_button.grid(row=0, column=0, pady=(15, 5))
+        self._settings_button.grid(row=0, column=0, padx=(15, 5))
 
         def callback_open_selection():
             open_selection()
             self._title.text = "Select Photos"
 
         self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
-        self._select_button.grid(row=0, column=1, pady=5)
+        self._select_button.grid(row=0, column=1, padx=5)
 
         self._visible = False
 
