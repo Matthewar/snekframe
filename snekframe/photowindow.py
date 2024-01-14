@@ -18,15 +18,29 @@ import PIL.ImageTk
 from .analyse import load_photo_files, setup_viewed_photos
 from . import elements
 from . import icons
-from .params import WINDOW_HEIGHT, WINDOW_WIDTH, TITLE_BAR_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION
-from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION, CurrentDisplay, PhotoList
+from .params import (
+    WINDOW_HEIGHT,
+    WINDOW_WIDTH,
+    TITLE_BAR_HEIGHT,
+    FILES_LOCATION,
+    PHOTOS_LOCATION,
+)
+from .db import (
+    SharedBase,
+    RUNTIME_ENGINE,
+    RUNTIME_SESSION,
+    PERSISTENT_SESSION,
+    CurrentDisplay,
+    PhotoList,
+)
 from .fonts import FONTS
 from .settings import SettingsWindow, SettingsContainer
+
 
 class PhotoTitleBar:
     """Titlebar"""
 
-    #class Mode(Enum):
+    # class Mode(Enum):
     #    Settings = auto()
     #    PhotosVisible = auto() # Rename to gallery?
     #    PhotosHidden = auto()
@@ -35,28 +49,38 @@ class PhotoTitleBar:
     def __init__(self, parent, open_selection, open_settings):
         self._frame = ttk.Frame(master=parent, style="TitleBar.TFrame")
 
-        self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
+        self._title = elements.UpdateLabel(
+            self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar"
+        )
         self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar")
-        self._datetime.place(x=WINDOW_WIDTH-15, rely=0.5, anchor="e")
+        self._datetime = elements.AutoUpdateDateLabel(
+            self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar"
+        )
+        self._datetime.place(x=WINDOW_WIDTH - 15, rely=0.5, anchor="e")
 
         title_menu = ttk.Frame(master=self._frame, style="TitleBar.TFrame")
         title_menu.place(x=2.5, rely=0.5, anchor="w")
-        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, style="Title")
+        self._title_menu_buttons = elements.RadioButtonSet(
+            default_button_cls=elements.IconRadioButton, style="Title"
+        )
 
         def callback_open_settings():
             open_settings()
             self._title.text = "Settings"
 
-        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, icon_name="settings", selected=False)
+        self._settings_button = self._title_menu_buttons.add_button(
+            title_menu, callback_open_settings, icon_name="settings", selected=False
+        )
         self._settings_button.grid(row=0, column=0, padx=(15, 5))
 
         def callback_open_selection():
             open_selection()
             self._title.text = "Select Photos"
 
-        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
+        self._select_button = self._title_menu_buttons.add_button(
+            title_menu, callback_open_selection, icon_name="slideshow", selected=False
+        )
         self._select_button.grid(row=0, column=1, padx=5)
 
         self._visible = False
@@ -67,7 +91,9 @@ class PhotoTitleBar:
         return self._visible
 
     def place(self, unpause_datetime=True):
-        self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
+        self._frame.place(
+            x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT
+        )
         self._frame.tkraise()
         if unpause_datetime:
             self._datetime.update_label()
@@ -97,8 +123,10 @@ class PhotoTitleBar:
         """
         self._select_button.invoke()
 
+
 class PhotoSelectionWindow:
     """Allows user to select which photos to display"""
+
     def __init__(self, frame, select_album_callback):
         self._main_window = frame
         self._inner_window = None
@@ -118,22 +146,30 @@ class PhotoSelectionWindow:
     def place_forget(self):
         self._main_window.place_forget()
 
-    def _generate_window(self): # TODO: Add regeneration after rescan (if changes)
+    def _generate_window(self):  # TODO: Add regeneration after rescan (if changes)
         if self._inner_window is not None:
             self._inner_window.destroy()
             self._innner_window = None
 
         with PERSISTENT_SESSION() as session:
-            albums = session.scalars(
-                select(PhotoList.album).distinct()
-            ).all()
+            albums = session.scalars(select(PhotoList.album).distinct()).all()
 
             num_albums = len(albums)
 
         if num_albums == 0:
-            self._inner_window = ttk.Frame(self._main_window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
-            main_label = ttk.Label(self._inner_window, text="No Photos Available", font=FONTS.title)
-            subtitle_label = ttk.Label(self._inner_window, text="Go to settings to scan for photos", font=FONTS.subtitle)
+            self._inner_window = ttk.Frame(
+                self._main_window,
+                width=WINDOW_WIDTH,
+                height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+            )
+            main_label = ttk.Label(
+                self._inner_window, text="No Photos Available", font=FONTS.title
+            )
+            subtitle_label = ttk.Label(
+                self._inner_window,
+                text="Go to settings to scan for photos",
+                font=FONTS.subtitle,
+            )
 
             elements = (main_label, subtitle_label)
 
@@ -147,23 +183,48 @@ class PhotoSelectionWindow:
             self._inner_window.grid_rowconfigure(0, weight=1)
             self._inner_window.grid_rowconfigure(len(elements) + 1, weight=1)
 
-            self._inner_window.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+            self._inner_window.place(
+                x=0,
+                y=0,
+                anchor="nw",
+                width=WINDOW_WIDTH,
+                height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+            )
         else:
             num_rows = num_albums // 3 + 1
-            inner_window_height = (self.BUTTON_HEIGHT + self.BUTTON_VERTICAL_PADDING * 2) * (num_rows + 1)
-            self._inner_window = ttk.Frame(self._main_window, width=WINDOW_WIDTH, height=inner_window_height)
+            inner_window_height = (
+                self.BUTTON_HEIGHT + self.BUTTON_VERTICAL_PADDING * 2
+            ) * (num_rows + 1)
+            self._inner_window = ttk.Frame(
+                self._main_window, width=WINDOW_WIDTH, height=inner_window_height
+            )
 
-            all_photos_button = ttk.Button(self._inner_window, text="All Photos", command=lambda: self._select_album_callback(all_photos=True))
-            all_photos_button.grid(row=0, column=1, columnspan=3, pady=self.BUTTON_VERTICAL_PADDING)
+            all_photos_button = ttk.Button(
+                self._inner_window,
+                text="All Photos",
+                command=lambda: self._select_album_callback(all_photos=True),
+            )
+            all_photos_button.grid(
+                row=0, column=1, columnspan=3, pady=self.BUTTON_VERTICAL_PADDING
+            )
 
             all_items = [self._inner_window, all_photos_button]
 
             current_row = 1
             current_column = 1
-            get_select_album = lambda album: (lambda: self._select_album_callback(album=album))
+            get_select_album = lambda album: (
+                lambda: self._select_album_callback(album=album)
+            )
             for album in albums:
-                album_button = ttk.Button(self._inner_window, text=album, command=get_select_album(album))
-                album_button.grid(row=current_row, column=current_column, pady=self.BUTTON_VERTICAL_PADDING, padx=10) # BUTTON_HORIZONTAL_PADDING
+                album_button = ttk.Button(
+                    self._inner_window, text=album, command=get_select_album(album)
+                )
+                album_button.grid(
+                    row=current_row,
+                    column=current_column,
+                    pady=self.BUTTON_VERTICAL_PADDING,
+                    padx=10,
+                )  # BUTTON_HORIZONTAL_PADDING
 
                 if current_column == 3:
                     current_row += 1
@@ -181,18 +242,24 @@ class PhotoSelectionWindow:
 
             # TODO: Add vertical scroll
 
+
 class PhotoDisplayWindow:
     _NUM_PHOTOS_LOADED = 3
 
     # TODO: Keep title open if clicking on it
 
     def __init__(self, frame, settings, show_title, hide_title):
-        self._window = frame # Visible frame
+        self._window = frame  # Visible frame
         self._settings = settings
         self._show_title = show_title
         self._hide_title = hide_title
 
-        self._inner_window = ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="DisplayWindow.TFrame") # TODO: Unnecessary layer?
+        self._inner_window = ttk.Frame(
+            master=self._window,
+            width=WINDOW_WIDTH,
+            height=WINDOW_HEIGHT,
+            style="DisplayWindow.TFrame",
+        )  # TODO: Unnecessary layer?
         self._photo = None
         self._image_left = None
         self._image_centre = None
@@ -253,7 +320,11 @@ class PhotoDisplayWindow:
 
         self._title_showing = False
 
-        self._photo = ttk.Label(self._inner_window, text="There should be a photo here", style="Image.DisplayWindow.TLabel")
+        self._photo = ttk.Label(
+            self._inner_window,
+            text="There should be a photo here",
+            style="Image.DisplayWindow.TLabel",
+        )
         self._photo.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         self._inner_window.place(x=0, y=0, anchor="nw")
 
@@ -265,19 +336,27 @@ class PhotoDisplayWindow:
             # For now just looking forwards?
             for row in session.scalars(select(PhotoList).limit(4)):
                 self._image_ids.append(row.id)
-                photos[row.id] = os.path.join(FILES_LOCATION, PHOTOS_LOCATION, row.album, row.filename)
+                photos[row.id] = os.path.join(
+                    FILES_LOCATION, PHOTOS_LOCATION, row.album, row.filename
+                )
         if len(self._image_ids) == 2:
-            self._image_ids.extend([self._image_ids[1]]*2 + [None])
+            self._image_ids.extend([self._image_ids[1]] * 2 + [None])
         elif len(self._image_ids) == 3:
             self._image_ids.extend([self._image_ids[1], self._image_ids[2]])
         elif len(self._image_ids) == 4:
             self._image_ids.append(None)
 
-        self._image_left = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[1]])))
-        self._image_centre = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[2]])))
+        self._image_left = PIL.ImageTk.PhotoImage(
+            self._resize_image(PIL.Image.open(photos[self._image_ids[1]]))
+        )
+        self._image_centre = PIL.ImageTk.PhotoImage(
+            self._resize_image(PIL.Image.open(photos[self._image_ids[2]]))
+        )
         self._photo.configure(image=self._image_centre)
         self._photo.image = self._image_centre
-        self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(photos[self._image_ids[3]])))
+        self._image_right = PIL.ImageTk.PhotoImage(
+            self._resize_image(PIL.Image.open(photos[self._image_ids[3]]))
+        )
 
         self._inner_window.bind("<Button-1>", self._frame_detect_click)
         self._inner_window.bind("<ButtonRelease-1>", self._frame_detect_release)
@@ -453,7 +532,9 @@ class PhotoDisplayWindow:
         else:
             self._show_title()
             self._title_showing = True
-            self._remove_title_job = self._inner_window.after(3000, self._check_remove_title)
+            self._remove_title_job = self._inner_window.after(
+                3000, self._check_remove_title
+            )
 
         self._action_timer = None
         self._action = None
@@ -467,7 +548,18 @@ class PhotoDisplayWindow:
         self._image_centre = self._image_right
 
         new_image_right_info = self._get_forward_image()
-        self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
+        self._image_right = PIL.ImageTk.PhotoImage(
+            self._resize_image(
+                PIL.Image.open(
+                    os.path.join(
+                        FILES_LOCATION,
+                        PHOTOS_LOCATION,
+                        new_image_right_info.album,
+                        new_image_right_info.filename,
+                    )
+                )
+            )
+        )
 
     def _switch_reverse_image(self):
         self._photo.configure(image=self._image_left)
@@ -477,7 +569,18 @@ class PhotoDisplayWindow:
         self._image_centre = self._image_left
 
         new_image_left_info = self._get_reverse_image()
-        self._image_left = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
+        self._image_left = PIL.ImageTk.PhotoImage(
+            self._resize_image(
+                PIL.Image.open(
+                    os.path.join(
+                        FILES_LOCATION,
+                        PHOTOS_LOCATION,
+                        new_image_left_info.album,
+                        new_image_left_info.filename,
+                    )
+                )
+            )
+        )
 
     def _transition_next_photo(self):
         if not self._pause_transitions:
@@ -486,14 +589,20 @@ class PhotoDisplayWindow:
             timedelta = current_time - self._last_transition_time
             if timedelta < self._settings.photo_change_time:
                 trigger_after_secs = self._settings.photo_change_time - timedelta
-                self._inner_window.after(int(trigger_after_secs.total_seconds() * 1000), self._transition_next_photo)
+                self._inner_window.after(
+                    int(trigger_after_secs.total_seconds() * 1000),
+                    self._transition_next_photo,
+                )
                 return
 
             timedelta = current_time - self._last_action_time
             if timedelta < datetime.timedelta(seconds=10):
                 seconds_since_event = timedelta.total_seconds()
                 if seconds_since_event < 9.0:
-                    self._inner_window.after(int((10-seconds_since_event)*1000), self._transition_next_photo)
+                    self._inner_window.after(
+                        int((10 - seconds_since_event) * 1000),
+                        self._transition_next_photo,
+                    )
                     return
 
             self._photo.configure(image=self._image_right)
@@ -502,7 +611,18 @@ class PhotoDisplayWindow:
             self._image_centre = self._image_right
 
             image_right_info = self._get_forward_image()
-            self._image_right = PIL.ImageTk.PhotoImage(self._resize_image(PIL.Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
+            self._image_right = PIL.ImageTk.PhotoImage(
+                self._resize_image(
+                    PIL.Image.open(
+                        os.path.join(
+                            FILES_LOCATION,
+                            PHOTOS_LOCATION,
+                            image_right_info.album,
+                            image_right_info.filename,
+                        )
+                    )
+                )
+            )
             self._last_transition_time = datetime.datetime.now()
 
         self._inner_window.after(10000, self._transition_next_photo)
@@ -516,7 +636,10 @@ class PhotoDisplayWindow:
             self._hide_title()
             self._title_showing = False
         else:
-            self._remove_title_job = self._inner_window.after(int(timedelta.total_seconds()*1000), self._check_remove_title)
+            self._remove_title_job = self._inner_window.after(
+                int(timedelta.total_seconds() * 1000), self._check_remove_title
+            )
+
 
 class PhotoWindow:
     """Photo window is made of 3 photos so they don't have to be loaded while the photos are dragged"""
@@ -587,7 +710,6 @@ class PhotoWindow:
         Display = auto()
         Settings = auto()
 
-
     def __init__(self, frame):
         self._window = frame
 
@@ -602,9 +724,13 @@ class PhotoWindow:
             display_info_result = persistent_session.scalars(
                 select(CurrentDisplay).limit(1)
             )
-            display_info_row = display_info_result.one_or_none() # throws MultipleResultsFound if multiple rows somehow found TODO
+            display_info_row = (
+                display_info_result.one_or_none()
+            )  # throws MultipleResultsFound if multiple rows somehow found TODO
             if display_info_row is not None:
-                self._selection = self.SelectedPhotos(album=display_info_row.album, all_photos=display_info_row.all_photos)
+                self._selection = self.SelectedPhotos(
+                    album=display_info_row.album, all_photos=display_info_row.all_photos
+                )
 
             if self._selection.photos_selected:
                 found_photos = self._setup_viewed_photos()
@@ -612,7 +738,9 @@ class PhotoWindow:
                 if not found_photos:
                     self._selection.set_no_selection()
 
-        self._title_bar = PhotoTitleBar(self._window, self._open_photo_select_window, self._open_settings)
+        self._title_bar = PhotoTitleBar(
+            self._window, self._open_photo_select_window, self._open_settings
+        )
         self._selection_window = None
         self._display_window = None
         self._settings_window = None
@@ -629,7 +757,7 @@ class PhotoWindow:
 
     def _close_current_window(self):
         if self._current_window is None:
-            return # Skip, should only occur on startup
+            return  # Skip, should only occur on startup
         if self._current_window == self.OpenWindow.Select:
             assert self._selection_window is not None
             self._selection_window.place_forget()
@@ -650,7 +778,14 @@ class PhotoWindow:
         self._close_current_window()
 
         if self._selection_window is None:
-            self._selection_window = PhotoSelectionWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._callback_open_photo_display_window)
+            self._selection_window = PhotoSelectionWindow(
+                ttk.Frame(
+                    master=self._window,
+                    width=WINDOW_WIDTH,
+                    height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+                ),
+                self._callback_open_photo_display_window,
+            )
         self._selection_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
         self._current_window = self.OpenWindow.Select
 
@@ -659,7 +794,7 @@ class PhotoWindow:
 
         if new_selection != self._selection:
             self._selection.update(new_selection)
-            self._setup_viewed_photos() # If returns false there were no photos somehow
+            self._setup_viewed_photos()  # If returns false there were no photos somehow
             regenerate = True
         else:
             regenerate = False
@@ -680,7 +815,14 @@ class PhotoWindow:
         self._close_current_window()
 
         if self._display_window is None:
-            self._display_window = PhotoDisplayWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._settings, self._title_bar.place, self._title_bar.place_forget)
+            self._display_window = PhotoDisplayWindow(
+                ttk.Frame(
+                    master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT
+                ),
+                self._settings,
+                self._title_bar.place,
+                self._title_bar.place_forget,
+            )
         elif regenerate:
             self._display_window.regenerate_window()
 
@@ -709,6 +851,17 @@ class PhotoWindow:
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
-            self._settings_window = SettingsWindow(self._window, self._selection, self._settings, self._destroy_photo_window)
-        self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+            self._settings_window = SettingsWindow(
+                self._window,
+                self._selection,
+                self._settings,
+                self._destroy_photo_window,
+            )
+        self._settings_window.place(
+            x=0,
+            y=TITLE_BAR_HEIGHT,
+            anchor="nw",
+            width=WINDOW_WIDTH,
+            height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+        )
         self._current_window = self.OpenWindow.Settings
