@@ -113,9 +113,10 @@ Can review this has been successfully applied with `sudo systemctl list-timers a
 
 ### 4. Setup Program User
 User with autologin, this stores relevant files and is used to run the program.
+`video` group allows the user to access the `vcgencmd` utility.
 
 ```bash
-sudo useradd --comment "Photo display program" --create-home snekframe
+sudo useradd --comment "Photo display program" --create-home snekframe --groups video
 sudo passwd snekframe
 # Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4
