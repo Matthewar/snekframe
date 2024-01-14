@@ -580,12 +580,14 @@ class _ToggleButton(_RadioButton):
             # Don't trigger is already selected
             return
 
-        if not self._selected:
+        if self._selected:
             self._unselect_command()
             self._style_normal()
+            self._selected = False
         else:
             self._command()
             self._style_selected()
+            self._selected = True
 
 class TextToggleButton(_ToggleButton):
     def __init__(self, parent, select_command, unselect_command, text=None, selected_text=None, enabled=True, selected=False, style="Default", **label_kwargs):
