@@ -1,6 +1,6 @@
 """Main Windows"""
 
-import logging # TODO: Update logging to include filename
+import logging  # TODO: Update logging to include filename
 import os
 import os.path
 import sys
@@ -11,18 +11,37 @@ import tkinter.ttk as ttk
 from . import db, styles
 from .fonts import FONTS
 from .styles import STYLES
-from .params import WINDOW_WIDTH, WINDOW_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION, DATABASE_NAME
+from .params import (
+    WINDOW_WIDTH,
+    WINDOW_HEIGHT,
+    FILES_LOCATION,
+    PHOTOS_LOCATION,
+    DATABASE_NAME,
+)
 from .photowindow import PhotoWindow
+
 
 class EntryWindow:
     """Startup settings"""
+
     def __init__(self, frame, exit_window_callback):
         self._window = frame
 
         title_label = ttk.Label(self._window, text="Hello!", font=FONTS.title)
-        subtitle_label = ttk.Label(self._window, text="Press 'Start' to create database and startup system", font=FONTS.subtitle)
-        info_label = ttk.Label(self._window, text="This will reset and create a new database.\nIf not expecting to see this message, please contact your local Matt", justify=tk.LEFT, font=FONTS.default)
-        basic_settings_button = ttk.Button(self._window, text="Start", command=exit_window_callback) # font
+        subtitle_label = ttk.Label(
+            self._window,
+            text="Press 'Start' to create database and startup system",
+            font=FONTS.subtitle,
+        )
+        info_label = ttk.Label(
+            self._window,
+            text="This will reset and create a new database.\nIf not expecting to see this message, please contact your local Matt",
+            justify=tk.LEFT,
+            font=FONTS.default,
+        )
+        basic_settings_button = ttk.Button(
+            self._window, text="Start", command=exit_window_callback
+        )  # font
 
         # TODO: Add warning symbol
 
@@ -46,12 +65,15 @@ class EntryWindow:
         """Remove window"""
         self._window.place_forget()
 
+
 class VersionWindow:
     def __init__(self, frame, current_major, current_minor, exit_window_callback):
         self._window = frame
         self._exit_window_callback = exit_window_callback
 
-        title_label = ttk.Label(master=self._window, text="Version Change Detected", font=FONTS.title)
+        title_label = ttk.Label(
+            master=self._window, text="Version Change Detected", font=FONTS.title
+        )
 
         current_version = (current_major, current_minor)
         program_version = (db.DATABASE_VERSION_MAJOR, db.DATABASE_VERSION_MINOR)
@@ -71,15 +93,32 @@ class VersionWindow:
         else:
             raise Exception("Shouldn't hit this")
 
-        subtitle_label = ttk.Label(master=self._window, text=info_text, fonts=FONTS.subtitle, justify=tk.CENTER)
-        info_label = ttk.Label(master=self._window, text=f"Current Version: {current_major}.{current_minor} - New Version: {db.DATABASE_VERSION_MAJOR}.{db.DATABASE_VERSION_MINOR}", fonts=FONTS.default, justify=tk.CENTER)
+        subtitle_label = ttk.Label(
+            master=self._window, text=info_text, fonts=FONTS.subtitle, justify=tk.CENTER
+        )
+        info_label = ttk.Label(
+            master=self._window,
+            text=f"Current Version: {current_major}.{current_minor} - New Version: {db.DATABASE_VERSION_MAJOR}.{db.DATABASE_VERSION_MINOR}",
+            fonts=FONTS.default,
+            justify=tk.CENTER,
+        )
 
         elements = [title_label, subtitle_label, info_label]
 
         if upgrade_button:
-            elements.append(ttk.Button(master=self._window, text="Upgrade", command=self._trigger_upgrade))
+            elements.append(
+                ttk.Button(
+                    master=self._window, text="Upgrade", command=self._trigger_upgrade
+                )
+            )
         if continue_button:
-            elements.append(ttk.Button(master=self._window, text="Continue (without upgrading)", command=exit_window_callback))
+            elements.append(
+                ttk.Button(
+                    master=self._window,
+                    text="Continue (without upgrading)",
+                    command=exit_window_callback,
+                )
+            )
 
     def _trigger_upgrade(self):
         raise NotImplementedError("Currently on version v0.0, no reason to upgrade")
@@ -92,8 +131,10 @@ class VersionWindow:
         """Remove window"""
         self._window.place_forget()
 
+
 class MainWindow:
     """Holds all other windows"""
+
     def __init__(self):
         self._root = tk.Tk()
         self._root.title("Photos")
@@ -109,22 +150,41 @@ class MainWindow:
         self._generate_windows()
 
     def _generate_photo_window(self):
-        self._windows["photos"] = PhotoWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT))
+        self._windows["photos"] = PhotoWindow(
+            ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+        )
         self._windows["photos"].place(x=0, y=0, anchor="nw")
 
     def _generate_windows(self):
         """Generate all the potential windows"""
         # Whether to generate the initial setup page
         if not os.path.exists(os.path.join(FILES_LOCATION, DATABASE_NAME)):
-            #ttk.Style().configure("Test.TFrame", background="green")
-            self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._close_entrypoint)
-            #self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="Test.TFrame"), self._close_entrypoint)
-            self._windows["entrypoint"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+            # ttk.Style().configure("Test.TFrame", background="green")
+            self._windows["entrypoint"] = EntryWindow(
+                ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT),
+                self._close_entrypoint,
+            )
+            # self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="Test.TFrame"), self._close_entrypoint)
+            self._windows["entrypoint"].place(
+                x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT
+            )
         else:
             database_major, database_minor = db.get_database_version()
-            if database_major != db.DATABASE_VERSION_MAJOR or database_minor != db.DATABASE_VERSION_MINOR:
-                self._windows["upgrade_version"] = VersionWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), database_major, database_minor, self._close_upgrade_window)
-                self._windows["upgrade_version"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+            if (
+                database_major != db.DATABASE_VERSION_MAJOR
+                or database_minor != db.DATABASE_VERSION_MINOR
+            ):
+                self._windows["upgrade_version"] = VersionWindow(
+                    ttk.Frame(
+                        master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT
+                    ),
+                    database_major,
+                    database_minor,
+                    self._close_upgrade_window,
+                )
+                self._windows["upgrade_version"].place(
+                    x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT
+                )
             else:
                 self._generate_photo_window()
 
@@ -169,6 +229,7 @@ class MainWindow:
 def main():
     """Main"""
     return MainWindow().launch()
+
 
 if __name__ == "__main__":
     sys.exit(main())

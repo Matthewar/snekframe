@@ -8,6 +8,7 @@ from tkinter import ttk
 from . import styles
 from .icons import ICONS
 
+
 class _LimitedElement:
     """Basic element wrapper with limited parameters
 
@@ -21,12 +22,15 @@ class _LimitedElement:
     - after
     - after_cancel
     """
-    _ELEMENT_KWARGS : set[str] = set()
+
+    _ELEMENT_KWARGS: set[str] = set()
 
     def __init__(self, parent, element_cls, user_element_kwargs, **element_kwargs):
         for key in user_element_kwargs:
             if key not in self._ELEMENT_KWARGS:
-                raise TypeError(f"Unexpected kwarg '{key}' not allowed in {self.__class__.__name__}")
+                raise TypeError(
+                    f"Unexpected kwarg '{key}' not allowed in {self.__class__.__name__}"
+                )
 
         all_kwargs = user_element_kwargs | element_kwargs
         self._element = element_cls(master=parent, **all_kwargs)
@@ -55,35 +59,60 @@ class _LimitedElement:
         """Underlying element after_cancel callback"""
         return self._element.after_cancel(*after_args)
 
+
 class _LimitedLabel(_LimitedElement):
     """Basic label wrapper with limited parameters
 
     Defaults to no supported label parameters, not intended for this to be used externally
     """
+
     def __init__(self, parent, user_label_kwargs, style=None, **label_kwargs):
-        super().__init__(parent, ttk.Label, user_label_kwargs, style=styles.get_label_style_name(style), **label_kwargs)
+        super().__init__(
+            parent,
+            ttk.Label,
+            user_label_kwargs,
+            style=styles.get_label_style_name(style),
+            **label_kwargs,
+        )
 
     @property
     def _label(self):
         return self._element
+
 
 class LimitedFrameBaseElement(_LimitedElement):
     """Basic element to build from with a frame
 
     Defaults to no supported frame parameters, intended to only be used as a parent
     """
+
     def __init__(self, parent, user_frame_kwargs, style=None, **frame_kwargs):
-        super().__init__(parent, ttk.Frame, user_frame_kwargs, style=styles.get_frame_style_name(style), **frame_kwargs)
+        super().__init__(
+            parent,
+            ttk.Frame,
+            user_frame_kwargs,
+            style=styles.get_frame_style_name(style),
+            **frame_kwargs,
+        )
 
     @property
     def _frame(self):
         return self._element
 
+
 class UpdateLabel(_LimitedLabel):
     """Label with text that can be updated"""
+
     _ELEMENT_KWARGS = set(("anchor", "justify", "font"))
 
-    def __init__(self, parent, initialtext=None, variabletype=tk.StringVar, style=None, **label_kwargs):
+    def __init__(
+        self,
+        parent,
+        initialtext=None,
+        variabletype=tk.StringVar,
+        style=None,
+        **label_kwargs,
+    ):
         self._text = variabletype(value=initialtext)
         super().__init__(parent, label_kwargs, style=style, textvariable=self._text)
 
@@ -95,6 +124,7 @@ class UpdateLabel(_LimitedLabel):
     @text.setter
     def text(self, value):
         self._text.set(value)
+
 
 class AutoUpdateLabel(UpdateLabel):
     """Label with text that can be updated
@@ -121,7 +151,9 @@ class AutoUpdateLabel(UpdateLabel):
         IE there won't be an update_job running any more
         """
         self._update_label()
-        self._update_job = self._label.after(self.UPDATE_CALLBACK_MIN_TIME_MS, self._update_label_no_cancel)
+        self._update_job = self._label.after(
+            self.UPDATE_CALLBACK_MIN_TIME_MS, self._update_label_no_cancel
+        )
 
     def update_label(self):
         """Update the label and unpause updates if paused"""
@@ -175,19 +207,25 @@ class AutoUpdateLabel(UpdateLabel):
             self.pause_updates()
         super().grid_remove()
 
+
 class AutoUpdateDateLabel(AutoUpdateLabel):
     """Label with datetime that auto updates"""
 
-    UPDATE_CALLBACK_MIN_TIME_MS = 10000 # Every 30 seconds (only display up to minute)
+    UPDATE_CALLBACK_MIN_TIME_MS = 10000  # Every 30 seconds (only display up to minute)
 
     def __init__(self, parent, style=None, **label_kwargs):
         if "initialtext" in label_kwargs:
-            raise TypeError("kwarg 'initialtext' not permitted in {}".format(self.__class__.__name__))
+            raise TypeError(
+                "kwarg 'initialtext' not permitted in {}".format(
+                    self.__class__.__name__
+                )
+            )
         super().__init__(parent, style=style, **label_kwargs)
 
     def _update_label(self):
         """Update current time display"""
         self.text = datetime.datetime.now().strftime("%a %d/%m/%Y, %I:%M%p")
+
 
 class _Button(_LimitedElement):
     """Custom basic button
@@ -200,7 +238,16 @@ class _Button(_LimitedElement):
     Element additionally requires methods:
     - bind
     """
-    def __init__(self, parent, element_cls, command, user_element_kwargs, enabled=True, **element_kwargs):
+
+    def __init__(
+        self,
+        parent,
+        element_cls,
+        command,
+        user_element_kwargs,
+        enabled=True,
+        **element_kwargs,
+    ):
         super().__init__(parent, element_cls, user_element_kwargs, **element_kwargs)
         self._setup_bindings()
 
@@ -288,16 +335,29 @@ class _Button(_LimitedElement):
     def _style_disabled(self):
         raise NotImplementedError()
 
+
 class TextButton(_Button):
     """Regular button using text label
 
     Colour changing occurs for the background
     """
-    def __init__(self, parent, command, text=None, enabled=True, style="Default", **label_kwargs):
+
+    def __init__(
+        self, parent, command, text=None, enabled=True, style="Default", **label_kwargs
+    ):
         if text is None:
             raise TypeError()
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, style=self._style, padding=5)
+        super().__init__(
+            parent,
+            ttk.Label,
+            command,
+            label_kwargs,
+            enabled=enabled,
+            text=text,
+            style=self._style,
+            padding=5,
+        )
 
     def _style_normal(self):
         self._element.configure(style=self._style)
@@ -308,16 +368,32 @@ class TextButton(_Button):
     def _style_disabled(self):
         self._element.configure(style=f"Disabled.{self._style}")
 
+
 class IconButton(_Button):
     """Regular button using image icon"""
-    def __init__(self, parent, command, icon_name, enabled=True, style="Default", **label_kwargs):
+
+    def __init__(
+        self, parent, command, icon_name, enabled=True, style="Default", **label_kwargs
+    ):
         base_style_name = f"{style}.Icon.Button.TLabel"
 
         self._normal_icon = ICONS.get(icon_name, **styles._ICON_STYLES[base_style_name])
-        self._active_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Active.{base_style_name}"])
-        self._disabled_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
+        self._active_icon = ICONS.get(
+            icon_name, **styles._ICON_STYLES[f"Active.{base_style_name}"]
+        )
+        self._disabled_icon = ICONS.get(
+            icon_name, **styles._ICON_STYLES[f"Disabled.{base_style_name}"]
+        )
 
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, image=self._normal_icon, style=base_style_name)
+        super().__init__(
+            parent,
+            ttk.Label,
+            command,
+            label_kwargs,
+            enabled=enabled,
+            image=self._normal_icon,
+            style=base_style_name,
+        )
 
     def _style_normal(self):
         self._element.configure(image=self._normal_icon)
@@ -331,14 +407,32 @@ class IconButton(_Button):
         self._element.configure(image=self._disabled_icon)
         self._element.image = self._disabled_icon
 
+
 class _RadioButton(_Button):
     """Button that can be selected"""
-    def __init__(self, parent, element_cls, command, user_element_kwargs, enabled=True, selected=False, **element_kwargs):
+
+    def __init__(
+        self,
+        parent,
+        element_cls,
+        command,
+        user_element_kwargs,
+        enabled=True,
+        selected=False,
+        **element_kwargs,
+    ):
         if selected and not enabled:
             raise AttributeError("Cannot select disabled button")
 
         self._selected = selected
-        super().__init__(parent, element_cls, command, user_element_kwargs, enabled=enabled, **element_kwargs)
+        super().__init__(
+            parent,
+            element_cls,
+            command,
+            user_element_kwargs,
+            enabled=enabled,
+            **element_kwargs,
+        )
 
     def _style_initial(self):
         if self._selected:
@@ -391,19 +485,40 @@ class _RadioButton(_Button):
                 self._style_normal()
         self._clicked = (True, False)
 
+
 class TextRadioButton(_RadioButton):
     """RadioButton using text label
 
     Colour changing occurs for the background
     """
+
     _LABEL_KWARGS = set(("anchor", "justify", "font"))
 
-    def __init__(self, parent, command, text=None, enabled=True, selected=True, style="Default", **label_kwargs):
+    def __init__(
+        self,
+        parent,
+        command,
+        text=None,
+        enabled=True,
+        selected=True,
+        style="Default",
+        **label_kwargs,
+    ):
         if text is None:
             raise TypeError()
 
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, style=self._style, padding=5)
+        super().__init__(
+            parent,
+            ttk.Label,
+            command,
+            label_kwargs,
+            enabled=enabled,
+            selected=selected,
+            text=text,
+            style=self._style,
+            padding=5,
+        )
 
     def _style_normal(self):
         self._element.configure(style=self._style)
@@ -417,23 +532,49 @@ class TextRadioButton(_RadioButton):
     def _style_selected(self):
         self._element.configure(style=f"Selected.{self._style}")
 
+
 class IconRadioButton(_RadioButton):
     """RadioButton using image icon
 
     Colour changing occurs for the icon
     """
-    def __init__(self, parent, command, icon_name=None, enabled=True, selected=True, style="Default", **label_kwargs):
+
+    def __init__(
+        self,
+        parent,
+        command,
+        icon_name=None,
+        enabled=True,
+        selected=True,
+        style="Default",
+        **label_kwargs,
+    ):
         if icon_name is None:
             raise TypeError()
 
         base_style_name = f"{style}.Icon.Button.TLabel"
 
         self._normal_icon = ICONS.get(icon_name, **styles._ICON_STYLES[base_style_name])
-        self._active_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Active.{base_style_name}"])
-        self._disabled_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
-        self._selected_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Selected.{base_style_name}"])
+        self._active_icon = ICONS.get(
+            icon_name, **styles._ICON_STYLES[f"Active.{base_style_name}"]
+        )
+        self._disabled_icon = ICONS.get(
+            icon_name, **styles._ICON_STYLES[f"Disabled.{base_style_name}"]
+        )
+        self._selected_icon = ICONS.get(
+            icon_name, **styles._ICON_STYLES[f"Selected.{base_style_name}"]
+        )
 
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, image=self._normal_icon, style=base_style_name)
+        super().__init__(
+            parent,
+            ttk.Label,
+            command,
+            label_kwargs,
+            enabled=enabled,
+            selected=selected,
+            image=self._normal_icon,
+            style=base_style_name,
+        )
 
     def _style_normal(self):
         self._element.configure(image=self._normal_icon)
@@ -451,11 +592,13 @@ class IconRadioButton(_RadioButton):
         self._element.configure(image=self._selected_icon)
         self._element.image = self._selected_icon
 
+
 class IconTextRadioButton(_RadioButton):
     """RadioButton with icon and image
 
     Colour changing affects the background of the icon and text
     """
+
     class _IconTextElement(LimitedFrameBaseElement):
         def __init__(self, master=None, text=None, icon_name=None, style="Default"):
             if master is None or text is None or icon_name is None:
@@ -465,13 +608,27 @@ class IconTextRadioButton(_RadioButton):
 
             super().__init__(master, {}, style=self._style)
 
-            self._normal_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"{self._style}.TLabel"])
-            self._active_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Active.{self._style}.TLabel"])
-            self._disabled_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Disabled.{self._style}.TLabel"])
-            self._selected_icon = ICONS.get(icon_name, **styles._ICON_STYLES[f"Selected.{self._style}.TLabel"])
+            self._normal_icon = ICONS.get(
+                icon_name, **styles._ICON_STYLES[f"{self._style}.TLabel"]
+            )
+            self._active_icon = ICONS.get(
+                icon_name, **styles._ICON_STYLES[f"Active.{self._style}.TLabel"]
+            )
+            self._disabled_icon = ICONS.get(
+                icon_name, **styles._ICON_STYLES[f"Disabled.{self._style}.TLabel"]
+            )
+            self._selected_icon = ICONS.get(
+                icon_name, **styles._ICON_STYLES[f"Selected.{self._style}.TLabel"]
+            )
 
-            self._icon = ttk.Label(master=self._frame, image=self._normal_icon, style="{self._style}.TLabel")
-            self._text = ttk.Label(master=self._frame, text=text, style="{self._style}.TLabel")
+            self._icon = ttk.Label(
+                master=self._frame,
+                image=self._normal_icon,
+                style="{self._style}.TLabel",
+            )
+            self._text = ttk.Label(
+                master=self._frame, text=text, style="{self._style}.TLabel"
+            )
 
             self._icon.grid(row=0, column=0, padx=(5.0, 2.5))
             self._text.grid(row=0, column=1, padx=(2.5, 5.0))
@@ -479,18 +636,14 @@ class IconTextRadioButton(_RadioButton):
 
         def style_normal(self):
             self._frame.configure(style=f"{self._style}.TFrame")
-            self._icon.configure(
-                style=f"{self._style}.TLabel",
-                image=self._normal_icon
-            )
+            self._icon.configure(style=f"{self._style}.TLabel", image=self._normal_icon)
             self._icon.image = self._normal_icon
             self._text.configure(style=f"{self._style}.TLabel")
 
         def style_active(self):
             self._frame.configure(style=f"Active.{self._style}.TFrame")
             self._icon.configure(
-                style=f"Active.{self._style}.TLabel",
-                image=self._active_icon
+                style=f"Active.{self._style}.TLabel", image=self._active_icon
             )
             self._icon.image = self._active_icon
             self._text.configure(style=f"Active.{self._style}.TLabel")
@@ -498,8 +651,7 @@ class IconTextRadioButton(_RadioButton):
         def style_disabled(self):
             self._frame.configure(style=f"Disabled.{self._style}.TFrame")
             self._icon.configure(
-                style=f"Disabled.{self._style}.TLabel",
-                image=self._disabled_icon
+                style=f"Disabled.{self._style}.TLabel", image=self._disabled_icon
             )
             self._icon.image = self._disabled_icon
             self._text.configure(style=f"Disabled.{self._style}.TLabel")
@@ -507,8 +659,7 @@ class IconTextRadioButton(_RadioButton):
         def style_selected(self):
             self._frame.configure(style=f"Selected.{self._style}.TFrame")
             self._icon.configure(
-                style=f"Selected.{self._style}.TLabel",
-                image=self._selected_icon
+                style=f"Selected.{self._style}.TLabel", image=self._selected_icon
             )
             self._icon.image = self._selected_icon
             self._text.configure(style=f"Selected.{self._style}.TLabel")
@@ -518,8 +669,27 @@ class IconTextRadioButton(_RadioButton):
             self._text.bind(event, *bind_args, **bind_kwargs)
             self._frame.bind(event, *bind_args, **bind_kwargs)
 
-    def __init__(self, parent, command, text=None, icon_name=None, enabled=True, selected=True, style="Default"):
-        super().__init__(parent, self._IconTextElement, command, {}, text=text, icon_name=icon_name, enabled=enabled, selected=selected, style=style)
+    def __init__(
+        self,
+        parent,
+        command,
+        text=None,
+        icon_name=None,
+        enabled=True,
+        selected=True,
+        style="Default",
+    ):
+        super().__init__(
+            parent,
+            self._IconTextElement,
+            command,
+            {},
+            text=text,
+            icon_name=icon_name,
+            enabled=enabled,
+            selected=selected,
+            style=style,
+        )
 
     def _style_normal(self):
         self._element.style_normal()
@@ -533,6 +703,7 @@ class IconTextRadioButton(_RadioButton):
     def _style_selected(self):
         self._element.style_selected()
 
+
 class RadioButtonSet:
     def __init__(self, default_button_cls=IconRadioButton, **default_radio_kwargs):
         self._default_button_cls = default_button_cls
@@ -541,7 +712,15 @@ class RadioButtonSet:
         self._next_id = 0
         self._selected = None
 
-    def add_button(self, parent, command, enabled=True, selected=False, button_cls=None, **radio_kwargs):
+    def add_button(
+        self,
+        parent,
+        command,
+        enabled=True,
+        selected=False,
+        button_cls=None,
+        **radio_kwargs,
+    ):
         if selected and self._selected is not None:
             raise AttributeError("Can only have one selected button")
         if button_cls is None:
@@ -560,7 +739,9 @@ class RadioButtonSet:
         button_kwargs = self._default_radio_kwargs.copy()
         button_kwargs.update(radio_kwargs)
 
-        self._buttons[button_id] = button_cls(parent, _update_buttons, enabled=enabled, selected=selected, **button_kwargs)
+        self._buttons[button_id] = button_cls(
+            parent, _update_buttons, enabled=enabled, selected=selected, **button_kwargs
+        )
         if selected:
             self._selected = button_id
 
@@ -571,9 +752,28 @@ class RadioButtonSet:
             self._buttons[self._selected].selected = False
             self._selected = None
 
+
 class _ToggleButton(_RadioButton):
-    def __init__(self, parent, element_cls, select_command, unselect_command, user_element_kwargs, enabled=True, selected=False, **element_kwargs):
-        super().__init__(parent, element_cls, select_command, user_element_kwargs, enabled=enabled, selected=selected, **element_kwargs)
+    def __init__(
+        self,
+        parent,
+        element_cls,
+        select_command,
+        unselect_command,
+        user_element_kwargs,
+        enabled=True,
+        selected=False,
+        **element_kwargs,
+    ):
+        super().__init__(
+            parent,
+            element_cls,
+            select_command,
+            user_element_kwargs,
+            enabled=enabled,
+            selected=selected,
+            **element_kwargs,
+        )
         self._unselect_command = unselect_command
 
     def invoke(self):
@@ -590,8 +790,20 @@ class _ToggleButton(_RadioButton):
             self._style_selected()
             self._selected = True
 
+
 class TextToggleButton(_ToggleButton):
-    def __init__(self, parent, select_command, unselect_command, text=None, selected_text=None, enabled=True, selected=False, style="Default", **label_kwargs):
+    def __init__(
+        self,
+        parent,
+        select_command,
+        unselect_command,
+        text=None,
+        selected_text=None,
+        enabled=True,
+        selected=False,
+        style="Default",
+        **label_kwargs,
+    ):
         if text is None:
             raise TypeError()
 
@@ -609,7 +821,18 @@ class TextToggleButton(_ToggleButton):
         self._text = tk.StringVar(value=initialtext)
 
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, textvariable=self._text, style=self._style, padding=5)
+        super().__init__(
+            parent,
+            ttk.Label,
+            select_command,
+            unselect_command,
+            label_kwargs,
+            enabled=enabled,
+            selected=selected,
+            textvariable=self._text,
+            style=self._style,
+            padding=5,
+        )
 
     def _style_normal(self):
         self._text.set(self._unselected_text)

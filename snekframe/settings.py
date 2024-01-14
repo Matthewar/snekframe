@@ -12,7 +12,15 @@ import threading
 from enum import Enum, auto
 
 from .analyse import load_photo_files, setup_viewed_photos
-from .db import Settings, PhotoList, RUNTIME_SESSION, PERSISTENT_SESSION, RUNTIME_ENGINE, NumPhotos, get_database_version
+from .db import (
+    Settings,
+    PhotoList,
+    RUNTIME_SESSION,
+    PERSISTENT_SESSION,
+    RUNTIME_ENGINE,
+    NumPhotos,
+    get_database_version,
+)
 from .fonts import FONTS
 from . import params
 from . import icons
@@ -25,13 +33,13 @@ import tkinter.ttk as ttk
 
 from sqlalchemy.sql.expression import func, select, update, delete
 
+
 class SettingsContainer:
     """Runtime Accessible Settings"""
+
     def __init__(self):
         with PERSISTENT_SESSION() as session:
-            result = session.scalars(
-                select(Settings).limit(1)
-            ).one_or_none()
+            result = session.scalars(select(Settings).limit(1)).one_or_none()
 
         if result is None:
             raise Exception("No settings discovered")
@@ -43,9 +51,7 @@ class SettingsContainer:
 
     def _update_settings(self, **update_kwargs):
         with PERSISTENT_SESSION() as session:
-            session.execute(
-                update(Settings).values(**update_kwargs)
-            )
+            session.execute(update(Settings).values(**update_kwargs))
             session.commit()
 
     @property
@@ -99,24 +105,42 @@ class SettingsContainer:
             float_delay = time_delay.total_seconds()
             int_delay = int(float_delay)
             if int_delay != int(math.ceil(float_delay)):
-                raise Exception("Photo change time cannot be less than seconds granularity")
+                raise Exception(
+                    "Photo change time cannot be less than seconds granularity"
+                )
         else:
             raise TypeError("photo_change_time must be an integer or datetime.delta")
 
         self._photo_change_time = time_delay
         self._update_settings(photo_change_time=int_delay)
 
+
 class SettingsMenu(elements.LimitedFrameBaseElement):
     """Sidebar menu for various settings pages"""
+
     def __init__(self, parent, open_photo_settings, open_system_settings):
         super().__init__(parent, {})
 
-        menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton)
+        menu_buttons = elements.RadioButtonSet(
+            default_button_cls=elements.IconTextRadioButton
+        )
 
-        self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
+        self._photo_settings_button = menu_buttons.add_button(
+            self._frame,
+            open_photo_settings,
+            text="Photos",
+            icon_name="photo",
+            selected=False,
+        )
         self._photo_settings_button.grid(row=0, column=0, sticky="ew")
 
-        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="computer", selected=False)
+        system_settings_button = menu_buttons.add_button(
+            self._frame,
+            open_system_settings,
+            text="System",
+            icon_name="computer",
+            selected=False,
+        )
         system_settings_button.grid(row=1, column=0, sticky="ew")
 
         self._frame.grid_columnconfigure(0, weight=1)
@@ -126,25 +150,40 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
         """Bring to default viewstate"""
         self._photo_settings_button.invoke()
 
+
 class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
-    def __init__(self, parent, settings_container, reorder_photos, destroy_photo_window):
+    def __init__(
+        self, parent, settings_container, reorder_photos, destroy_photo_window
+    ):
         super().__init__(parent, {})
 
-        shuffle_buttons = elements.RadioButtonSet(default_button_cls=elements.TextRadioButton)
+        shuffle_buttons = elements.RadioButtonSet(
+            default_button_cls=elements.TextRadioButton
+        )
 
         def reshuffle_photos():
             reorder_photos()
             destroy_photo_window(display_window=True, selection_window=False)
 
-        reshuffle_button = elements.IconButton(self._frame, reshuffle_photos, "shuffle", enabled=settings_container.shuffle_photos)
+        reshuffle_button = elements.IconButton(
+            self._frame,
+            reshuffle_photos,
+            "shuffle",
+            enabled=settings_container.shuffle_photos,
+        )
         reshuffle_button.grid(row=0, column=5)
 
         def unshuffle_photos():
             settings_container.shuffle_photos = False
             reshuffle_button.enabled = False
-            reshuffle_photos() # This uses the shuffle setting which we've set to false
+            reshuffle_photos()  # This uses the shuffle setting which we've set to false
 
-        shuffle_off_button = shuffle_buttons.add_button(self._frame, unshuffle_photos, selected=not settings_container.shuffle_photos, text="Off")
+        shuffle_off_button = shuffle_buttons.add_button(
+            self._frame,
+            unshuffle_photos,
+            selected=not settings_container.shuffle_photos,
+            text="Off",
+        )
         shuffle_off_button.grid(row=0, column=1)
 
         def shuffle_photos():
@@ -152,7 +191,12 @@ class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
             reshuffle_button.enabled = True
             reshuffle_button.invoke()
 
-        shuffle_on_button = shuffle_buttons.add_button(self._frame, shuffle_photos, selected=settings_container.shuffle_photos, text="On")
+        shuffle_on_button = shuffle_buttons.add_button(
+            self._frame,
+            shuffle_photos,
+            selected=settings_container.shuffle_photos,
+            text="On",
+        )
         shuffle_on_button.grid(row=0, column=3)
 
         self._frame.grid_columnconfigure(0, weight=2)
@@ -160,8 +204,8 @@ class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
         self._frame.grid_columnconfigure(4, weight=1)
         self._frame.grid_columnconfigure(6, weight=2)
 
-class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
 
+class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
     _TRANSITION_TIMES = (
         datetime.timedelta(seconds=10),
         datetime.timedelta(seconds=15),
@@ -181,13 +225,19 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
 
         self._settings_container = settings_container
 
-        self._decrease_time_button = elements.IconButton(self._frame, self._decrease_time, "minus", enabled=self._can_decrease_time())
+        self._decrease_time_button = elements.IconButton(
+            self._frame, self._decrease_time, "minus", enabled=self._can_decrease_time()
+        )
         self._decrease_time_button.place(x=0, rely=0.5, anchor="w")
 
-        self._time_info = elements.UpdateLabel(self._frame, initialtext=self._get_transition_time_string())
+        self._time_info = elements.UpdateLabel(
+            self._frame, initialtext=self._get_transition_time_string()
+        )
         self._time_info.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._increase_time_button = elements.IconButton(self._frame, self._increase_time, "plus", enabled=self._can_increase_time())
+        self._increase_time_button = elements.IconButton(
+            self._frame, self._increase_time, "plus", enabled=self._can_increase_time()
+        )
         self._increase_time_button.place(relx=1.0, rely=0.5, anchor="e")
 
     def _can_increase_time(self):
@@ -197,19 +247,27 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
         return self._settings_container.photo_change_time > self._TRANSITION_TIMES[0]
 
     def _decrease_time(self):
-        position = bisect.bisect_left(self._TRANSITION_TIMES, self._settings_container.photo_change_time)
+        position = bisect.bisect_left(
+            self._TRANSITION_TIMES, self._settings_container.photo_change_time
+        )
         if position > 0:
             position -= 1
-            self._settings_container.photo_change_time = self._TRANSITION_TIMES[position]
+            self._settings_container.photo_change_time = self._TRANSITION_TIMES[
+                position
+            ]
             self._time_info.text = self._get_transition_time_string()
 
         self._decrease_time_button.enabled = position != 0
         self._increase_time_button.enabled = True
 
     def _increase_time(self):
-        position = bisect.bisect_right(self._TRANSITION_TIMES, self._settings_container.photo_change_time)
+        position = bisect.bisect_right(
+            self._TRANSITION_TIMES, self._settings_container.photo_change_time
+        )
         if position < len(self._TRANSITION_TIMES):
-            self._settings_container.photo_change_time = self._TRANSITION_TIMES[position]
+            self._settings_container.photo_change_time = self._TRANSITION_TIMES[
+                position
+            ]
             self._time_info.text = self._get_transition_time_string()
 
         self._increase_time_button.enabled = self._can_increase_time()
@@ -237,8 +295,11 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
 
         return ", ".join(info)
 
+
 class PhotoSettings(elements.LimitedFrameBaseElement):
-    def __init__(self, parent, settings_container, photo_selection, destroy_photo_window):
+    def __init__(
+        self, parent, settings_container, photo_selection, destroy_photo_window
+    ):
         super().__init__(parent, {})
 
         self._settings_container = settings_container
@@ -249,43 +310,80 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         LEFTCOLUMN = 1
         RIGHTCOLUMN = LEFTCOLUMN + 1
 
-        shuffle_photos_label = ttk.Label(self._frame, text="Shuffle:", justify=tk.LEFT, font=FONTS.default)
-        shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+        shuffle_photos_label = ttk.Label(
+            self._frame, text="Shuffle:", justify=tk.LEFT, font=FONTS.default
+        )
+        shuffle_photos_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
 
-        shuffle_photos_settings = PhotoShuffleSettings(self._frame, settings_container, self._reorder_photos, destroy_photo_window)
-        shuffle_photos_settings.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
+        shuffle_photos_settings = PhotoShuffleSettings(
+            self._frame, settings_container, self._reorder_photos, destroy_photo_window
+        )
+        shuffle_photos_settings.grid(
+            row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew"
+        )
 
         row += 1
 
-        photo_transition_label = ttk.Label(self._frame, text="Photo Transition Time:", justify=tk.LEFT, font=FONTS.default)
-        photo_transition_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+        photo_transition_label = ttk.Label(
+            self._frame,
+            text="Photo Transition Time:",
+            justify=tk.LEFT,
+            font=FONTS.default,
+        )
+        photo_transition_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
 
-        photo_transition_controls = PhotoTransitionSettings(self._frame, settings_container)
-        photo_transition_controls.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
+        photo_transition_controls = PhotoTransitionSettings(
+            self._frame, settings_container
+        )
+        photo_transition_controls.grid(
+            row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew"
+        )
 
         row += 1
 
-        photos_info_label = ttk.Label(self._frame, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
-        photos_info_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+        photos_info_label = ttk.Label(
+            self._frame, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default
+        )
+        photos_info_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
 
-        self._num_photos_label = elements.UpdateLabel(self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default)
+        self._num_photos_label = elements.UpdateLabel(
+            self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default
+        )
         self._num_photos_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         row += 1
 
-        albums_info_label = ttk.Label(self._frame, text="Number of Albums:", justify=tk.LEFT, font=FONTS.default)
-        albums_info_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
-        self._num_albums_label = elements.UpdateLabel(self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default)
+        albums_info_label = ttk.Label(
+            self._frame, text="Number of Albums:", justify=tk.LEFT, font=FONTS.default
+        )
+        albums_info_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
+        self._num_albums_label = elements.UpdateLabel(
+            self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default
+        )
         self._num_albums_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         self._update_num_photo_labels()
 
         row += 1
 
-        rescan_photos_label = ttk.Label(self._frame, text="Rescan:", justify=tk.LEFT, font=FONTS.default)
-        rescan_photos_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+        rescan_photos_label = ttk.Label(
+            self._frame, text="Rescan:", justify=tk.LEFT, font=FONTS.default
+        )
+        rescan_photos_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
 
-        rescan_photos_button = elements.TextButton(self._frame, self._trigger_rescan, text="Go!")
+        rescan_photos_button = elements.TextButton(
+            self._frame, self._trigger_rescan, text="Go!"
+        )
         rescan_photos_button.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         row += 1
@@ -309,14 +407,14 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
             # No photos selected
             return False
 
-        return setup_viewed_photos(shuffle=self._settings_container.shuffle_photos, album=album)
+        return setup_viewed_photos(
+            shuffle=self._settings_container.shuffle_photos, album=album
+        )
 
     def _update_num_photo_labels(self):
         """Update the labels with number of photos"""
         with RUNTIME_SESSION() as session:
-            result = session.scalars(
-                select(NumPhotos).limit(1)
-            ).one_or_none()
+            result = session.scalars(select(NumPhotos).limit(1)).one_or_none()
 
             if result is None:
                 # TODO: Log error
@@ -336,9 +434,11 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         self._destroy_photo_window()
         self._update_num_photo_labels()
 
+
 class AutoUpdateIPLabel(elements.AutoUpdateLabel):
     """Label with IP address that auto update"""
-    UPDATE_CALLBACK_MIN_TIME_MS = 60*60*1000 # Check every hour
+
+    UPDATE_CALLBACK_MIN_TIME_MS = 60 * 60 * 1000  # Check every hour
     # TODO: Add refresh button?
 
     def _update_label(self):
@@ -353,13 +453,21 @@ class AutoUpdateIPLabel(elements.AutoUpdateLabel):
                 ["ip", "-j", "-4", "addr", "show"],
                 check=True,
                 text=True,
-                stdout=subprocess.PIPE).stdout
+                stdout=subprocess.PIPE,
+            ).stdout
         except subprocess.CalledProcessError:
             pass
         else:
             for entry in json.loads(output_json):
                 if entry["operstate"] == "UP":
-                    addr_info = next((addr_info for addr_info in entry["addr_info"] if addr_info["family"] == "inet"), None)
+                    addr_info = next(
+                        (
+                            addr_info
+                            for addr_info in entry["addr_info"]
+                            if addr_info["family"] == "inet"
+                        ),
+                        None,
+                    )
                     if addr_info is not None:
                         found_ip = True
                         return addr_info["local"]
@@ -367,8 +475,10 @@ class AutoUpdateIPLabel(elements.AutoUpdateLabel):
         if not found_ip:
             return "Failed to find IP!"
 
+
 class _SystemCallWindow(elements.LimitedFrameBaseElement):
     """Window to manage a shutdown or restart"""
+
     def __init__(self, parent, button_command_text, info_display_text):
         super().__init__(parent, {})
 
@@ -377,9 +487,15 @@ class _SystemCallWindow(elements.LimitedFrameBaseElement):
         self._countdown_job_id = None
         self._countdown_end_time = None
 
-        self._linked_windows = [] # Only one system call window can work at a time
+        self._linked_windows = []  # Only one system call window can work at a time
 
-        self._button = elements.TextToggleButton(self._frame, self._start_countdown, self.cancel, text=button_command_text, selected_text="Cancel")
+        self._button = elements.TextToggleButton(
+            self._frame,
+            self._start_countdown,
+            self.cancel,
+            text=button_command_text,
+            selected_text="Cancel",
+        )
         self._button.grid(row=0, column=0, padx=10)
 
         self._label = elements.UpdateLabel(self._frame, initialtext="")
@@ -407,13 +523,17 @@ class _SystemCallWindow(elements.LimitedFrameBaseElement):
         for window in self._linked_windows:
             window.disable()
 
-        self._countdown_end_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+        self._countdown_end_time = datetime.datetime.now() + datetime.timedelta(
+            seconds=5
+        )
         self._continue_countdown()
 
     def _continue_countdown(self):
         time_remaining = self._countdown_end_time - datetime.datetime.now()
         seconds = int(math.ceil(time_remaining.total_seconds()))
-        self._label.text = " ".join((self._info_display_text, "in", str(seconds), "seconds"))
+        self._label.text = " ".join(
+            (self._info_display_text, "in", str(seconds), "seconds")
+        )
 
         if seconds > 0:
             self._countdown_job_id = self._frame.after(300, self._continue_countdown)
@@ -433,6 +553,7 @@ class _SystemCallWindow(elements.LimitedFrameBaseElement):
     def _system_call(self):
         raise NotImplementedError()
 
+
 class _ShutdownCallWindow(_SystemCallWindow):
     def __init__(self, parent):
         super().__init__(parent, "Shutdown", "Shutting down")
@@ -440,12 +561,14 @@ class _ShutdownCallWindow(_SystemCallWindow):
     def _system_call(self):
         subprocess.run(["sudo", "/sbin/shutdown", "now"])
 
+
 class _RestartCallWindow(_SystemCallWindow):
     def __init__(self, parent):
         super().__init__(parent, "Restart", "Restarting")
 
     def _system_call(self):
         subprocess.run(["sudo", "/sbin/reboot"])
+
 
 class SystemSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent):
@@ -456,47 +579,76 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         RIGHTCOLUMN = LEFTCOLUMN + 1
         COLUMNSPAN = RIGHTCOLUMN - LEFTCOLUMN + 1
 
-        ip_addr_title_label = ttk.Label(self._frame, text="IP Address:", justify=tk.LEFT, font=FONTS.default)
-        ip_addr_title_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+        ip_addr_title_label = ttk.Label(
+            self._frame, text="IP Address:", justify=tk.LEFT, font=FONTS.default
+        )
+        ip_addr_title_label.grid(
+            row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew"
+        )
 
-        self._ip_addr_info_label = AutoUpdateIPLabel(self._frame, justify=tk.RIGHT, font=FONTS.default) # TODO: Add loading initial text?
+        self._ip_addr_info_label = AutoUpdateIPLabel(
+            self._frame, justify=tk.RIGHT, font=FONTS.default
+        )  # TODO: Add loading initial text?
         self._ip_addr_info_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
         self._shutdown_window = _ShutdownCallWindow(self._frame)
-        self._shutdown_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew")
+        self._shutdown_window.grid(
+            row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew"
+        )
 
         row += 1
 
         self._restart_window = _RestartCallWindow(self._frame)
-        self._restart_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew")
+        self._restart_window.grid(
+            row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew"
+        )
 
         self._shutdown_window.link_window(self._restart_window)
         self._restart_window.link_window(self._shutdown_window)
 
         row += 1
 
-        current_db_version_label = ttk.Label(self._frame, text="Current Database Version:", justify=tk.LEFT, font=FONTS.default)
+        current_db_version_label = ttk.Label(
+            self._frame,
+            text="Current Database Version:",
+            justify=tk.LEFT,
+            font=FONTS.default,
+        )
         current_db_version_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
-        db_version_label = ttk.Label(self._frame, text="v{:d}.{:d}".format(*get_database_version()), justify=tk.RIGHT, font=FONTS.default)
+        db_version_label = ttk.Label(
+            self._frame,
+            text="v{:d}.{:d}".format(*get_database_version()),
+            justify=tk.RIGHT,
+            font=FONTS.default,
+        )
         db_version_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
         current_version_string = importlib.metadata.version("snekframe")
-        self._current_version = tuple(current_version_string.split('.'))
+        self._current_version = tuple(current_version_string.split("."))
 
-        current_version_label = ttk.Label(self._frame, text="Current Version:", justify=tk.LEFT, font=FONTS.default)
+        current_version_label = ttk.Label(
+            self._frame, text="Current Version:", justify=tk.LEFT, font=FONTS.default
+        )
         current_version_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
-        version_label = ttk.Label(self._frame, text=current_version_string, justify=tk.RIGHT, font=FONTS.default)
+        version_label = ttk.Label(
+            self._frame,
+            text=current_version_string,
+            justify=tk.RIGHT,
+            font=FONTS.default,
+        )
         version_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
-        upgrade_label = ttk.Label(self._frame, text="Upgrade Available:", justify=tk.LEFT, font=FONTS.default)
+        upgrade_label = ttk.Label(
+            self._frame, text="Upgrade Available:", justify=tk.LEFT, font=FONTS.default
+        )
         upgrade_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
         self._upgrade_info_label = elements.UpdateLabel(self._frame)
@@ -505,16 +657,24 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         row += 1
 
         self._upgrade_info_text = None
-        self._upgrade_available = None # Version available
+        self._upgrade_available = None  # Version available
         self._upgrade_check_thread = None
 
-        self._upgrade_button = elements.TextButton(self._frame, text="Upgrade", enabled=False, command=self._run_upgrade)
-        self._upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5)
+        self._upgrade_button = elements.TextButton(
+            self._frame, text="Upgrade", enabled=False, command=self._run_upgrade
+        )
+        self._upgrade_button.grid(
+            row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5
+        )
 
         row += 1
 
-        self._check_upgrade_button = elements.TextButton(self._frame, text="Check for upgrade", command=self._check_upgrade)
-        self._check_upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5)
+        self._check_upgrade_button = elements.TextButton(
+            self._frame, text="Check for upgrade", command=self._check_upgrade
+        )
+        self._check_upgrade_button.grid(
+            row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5
+        )
         self._check_upgrade_button.invoke()
         self._check_upgrade()
 
@@ -552,11 +712,31 @@ class SystemSettings(elements.LimitedFrameBaseElement):
             subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
             REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
             subprocess.run(["git", "checkout", upgrade_version_string], cwd=REPO_DIR)
-            query_version = subprocess.run(["python3", "-c", "from setuptools import setup; setup()", "--version"], cwd=REPO_DIR, stdout=subprocess.PIPE, text=True)
-            queried_version = tuple(query_version.stdout.rstrip('\n').lstrip('v').split('.')[0:3])
+            query_version = subprocess.run(
+                ["python3", "-c", "from setuptools import setup; setup()", "--version"],
+                cwd=REPO_DIR,
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+            queried_version = tuple(
+                query_version.stdout.rstrip("\n").lstrip("v").split(".")[0:3]
+            )
             if queried_version != self._upgrade_available:
-                raise Exception("queried version {} doesn't match expected upgrade {}".format(queried_version, self._upgrade_available))
-            subprocess.run([os.path.join(params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"), "install", "./snekframe"], cwd=temp_dir)
+                raise Exception(
+                    "queried version {} doesn't match expected upgrade {}".format(
+                        queried_version, self._upgrade_available
+                    )
+                )
+            subprocess.run(
+                [
+                    os.path.join(
+                        params.FILES_LOCATION, params.VIRTUALENV_NAME, "bin", "pip"
+                    ),
+                    "install",
+                    "./snekframe",
+                ],
+                cwd=temp_dir,
+            )
         subprocess.run(["sudo", "/sbin/reboot"])
 
     def _check_upgrade(self):
@@ -586,13 +766,20 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         with tempfile.TemporaryDirectory() as temp_dir:
             subprocess.run(["git", "clone", params.REPO_URL], cwd=temp_dir)
             REPO_DIR = os.path.join(temp_dir, params.REPO_NAME)
-            get_tags = subprocess.run(["git", "tag", "--sort=creatordate"], cwd=REPO_DIR, stdout=subprocess.PIPE, text=True)
-            all_tags = get_tags.stdout.rstrip('\n').split('\n')
-        if not all_tags or (len(all_tags) == 1 and all_tags[0] == ''):
+            get_tags = subprocess.run(
+                ["git", "tag", "--sort=creatordate"],
+                cwd=REPO_DIR,
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+            all_tags = get_tags.stdout.rstrip("\n").split("\n")
+        if not all_tags or (len(all_tags) == 1 and all_tags[0] == ""):
             self._upgrade_info_text = "Unable to find any versions!"
             self._upgrade_available = None
         else:
-            latest_major, latest_minor, latest_patch = all_tags[-1].lstrip('v').split('.')[0:3]
+            latest_major, latest_minor, latest_patch = (
+                all_tags[-1].lstrip("v").split(".")[0:3]
+            )
             if (latest_major, latest_minor, latest_patch) == self._current_version:
                 self._upgrade_info_text = "Already on latest version"
                 self._upgrade_available = None
@@ -603,6 +790,7 @@ class SystemSettings(elements.LimitedFrameBaseElement):
                 self._upgrade_info_text = f"Version v{latest_major}.{latest_minor}.{latest_patch} now available"
                 self._upgrade_available = (latest_major, latest_minor, latest_patch)
 
+
 class SettingsWindow:
     class OpenWindow(Enum):
         Photo = auto()
@@ -610,23 +798,38 @@ class SettingsWindow:
 
     _MENU_WIDTH = 300
 
-    def __init__(self, parent, selection, settings, destroy_photo_window): # TODO: Previous screen if possible
+    def __init__(
+        self, parent, selection, settings, destroy_photo_window
+    ):  # TODO: Previous screen if possible
         self._main_window = ttk.Frame(master=parent)
 
-        self._menu = SettingsMenu(self._main_window, self._open_photo_settings, self._open_system_settings)
-        self._menu.place(x=0, y=0, anchor="nw", height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT, width=self._MENU_WIDTH)
+        self._menu = SettingsMenu(
+            self._main_window, self._open_photo_settings, self._open_system_settings
+        )
+        self._menu.place(
+            x=0,
+            y=0,
+            anchor="nw",
+            height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+            width=self._MENU_WIDTH,
+        )
         self._current_window = None
 
         self._photo_selection = selection
         self._settings_container = settings
         self._destroy_photo_window = destroy_photo_window
 
-        self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
+        self._photo_window = PhotoSettings(
+            self._main_window,
+            self._settings_container,
+            self._photo_selection,
+            self._destroy_photo_window,
+        )
         self._system_window = SystemSettings(self._main_window)
 
     def _close_current_window(self):
         if self._current_window is None:
-            return # Skip, should only occur on startup
+            return  # Skip, should only occur on startup
         if self._current_window == self.OpenWindow.Photo:
             self._photo_window.place_forget()
         elif self._current_window == self.OpenWindow.System:
@@ -639,9 +842,22 @@ class SettingsWindow:
     def _open_photo_settings(self):
         self._close_current_window()
 
-        if self._photo_window is None: # TODO: Is there any reason to not have this built, how much memory
-            self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
-        self._photo_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+        if (
+            self._photo_window is None
+        ):  # TODO: Is there any reason to not have this built, how much memory
+            self._photo_window = PhotoSettings(
+                self._main_window,
+                self._settings_container,
+                self._photo_selection,
+                self._destroy_photo_window,
+            )
+        self._photo_window.place(
+            x=self._MENU_WIDTH,
+            y=0,
+            anchor="nw",
+            width=WINDOW_WIDTH - self._MENU_WIDTH,
+            height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+        )
         self._current_window = self.OpenWindow.Photo
 
     def _open_system_settings(self):
@@ -649,7 +865,13 @@ class SettingsWindow:
 
         if self._system_window is None:
             self._system_window = SystemSettings(self._main_window)
-        self._system_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+        self._system_window.place(
+            x=self._MENU_WIDTH,
+            y=0,
+            anchor="nw",
+            width=WINDOW_WIDTH - self._MENU_WIDTH,
+            height=WINDOW_HEIGHT - TITLE_BAR_HEIGHT,
+        )
         self._current_window = self.OpenWindow.System
 
     def place(self, **place_kwargs):
