@@ -472,6 +472,9 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         self._restart_window = _RestartCallWindow(self._frame)
         self._restart_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew")
 
+        self._shutdown_window.link_window(self._restart_window)
+        self._restart_window.link_window(self._shutdown_window)
+
         row += 1
 
         current_db_version_label = ttk.Label(self._frame, text="Current Database Version:", justify=tk.LEFT, font=FONTS.default)
