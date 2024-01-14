@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlalchemy import String, Time, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from sqlalchemy.sql.expression import select
 
 from . import params
 from .params import MAX_FILENAME_SIZE
@@ -12,13 +13,23 @@ class PersistentBase(DeclarativeBase):
     """Program Base DB Class"""
     pass
 
+DATABASE_VERSION_MAJOR = 0
+DATABASE_VERSION_MINOR = 0
+
 class DatabaseVersion(PersistentBase):
     """Version"""
-    __tablename__ = "application_version"
+    __tablename__ = "database_version"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    major: Mapped[int] = mapped_column(insert_default=0)
-    minor: Mapped[int] = mapped_column(insert_default=0)
+    major: Mapped[int] = mapped_column(insert_default=DATABASE_VERSION_MAJOR)
+    minor: Mapped[int] = mapped_column(insert_default=DATABASE_VERSION_MINOR)
+
+def get_database_version():
+    with PERSISTENT_SESSION() as session:
+        version = session.scalars(select(DatabaseVersion).limit(1)).one_or_none()
+    if version is None:
+        raise Exception("Database version was not found")
+    return (version.major, version.minor)
 
 class CurrentDisplay(PersistentBase):
     """Currently Displayed Album"""

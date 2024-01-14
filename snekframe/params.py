@@ -11,5 +11,11 @@ PHOTOS_LOCATION = "files"
 
 MAX_FILENAME_SIZE = 256
 
-TITLE_BAR_HEIGHT = 50
-TITLE_BAR_COLOUR = "red"
+TITLE_BAR_HEIGHT = 75
+
+GIT_URL = "https://github.com"
+ORGANISATION = "matthewar"
+REPO_NAME = "snekframe"
+REPO_URL = "/".join((GIT_URL, ORGANISATION, REPO_NAME))
+
+VIRTUALENV_NAME = "env"
