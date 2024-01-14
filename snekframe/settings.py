@@ -143,7 +143,7 @@ class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
             reshuffle_button.enabled = False
             reshuffle_photos() # This uses the shuffle setting which we've set to false
 
-        shuffle_off_button = shuffle_buttons.add_button(self._frame, unshuffle_photos, selected=False, text="Off")
+        shuffle_off_button = shuffle_buttons.add_button(self._frame, unshuffle_photos, selected=not settings_container.shuffle_photos, text="Off")
         shuffle_off_button.grid(row=0, column=1)
 
         def shuffle_photos():
@@ -151,7 +151,7 @@ class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
             reshuffle_button.enabled = True
             reshuffle_button.invoke()
 
-        shuffle_on_button = shuffle_buttons.add_button(self._frame, shuffle_photos, selected=False, text="On")
+        shuffle_on_button = shuffle_buttons.add_button(self._frame, shuffle_photos, selected=settings_container.shuffle_photos, text="On")
         shuffle_on_button.grid(row=0, column=3)
 
         self._frame.grid_columnconfigure(0, weight=2)
