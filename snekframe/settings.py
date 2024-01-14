@@ -656,4 +656,4 @@ class SettingsWindow:
 
     def place_forget(self):
         self._main_window.place_forget()
-        self._close_current_window()
+        self._menu.reset()
