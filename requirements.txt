@@ -1,0 +1,6 @@
+black==23.12.1
+filetype==1.2.0
+Pillow==10.1.0
+reportlab==4.0.8
+SQLAlchemy==2.0.24
+svglib==1.5.1
