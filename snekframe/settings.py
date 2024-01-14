@@ -181,13 +181,13 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
         self._settings_container = settings_container
 
         self._decrease_time_button = elements.IconButton(self._frame, self._decrease_time, "minus", enabled=self._can_decrease_time())
-        self._decrease_time_button.place(relx=0.3, rely=0.5, anchor=tk.CENTER)
+        self._decrease_time_button.place(x=0, rely=0.5, anchor="w")
 
         self._time_info = elements.UpdateLabel(self._frame, initialtext=self._get_transition_time_string())
         self._time_info.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         self._increase_time_button = elements.IconButton(self._frame, self._increase_time, "plus", enabled=self._can_increase_time())
-        self._increase_time_button.place(relx=0.6, rely=0.5, anchor=tk.CENTER)
+        self._increase_time_button.place(relx=1.0, rely=0.5, anchor="e")
 
     def _can_increase_time(self):
         return self._settings_container.photo_change_time < self._TRANSITION_TIMES[-1]
@@ -202,8 +202,7 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
             self._settings_container.photo_change_time = self._TRANSITION_TIMES[position]
             self._time_info.text = self._get_transition_time_string()
 
-        if position == 0:
-            self._decrease_time_button.enabled = False
+        self._decrease_time_button.enabled = position != 0
         self._increase_time_button.enabled = True
 
     def _increase_time(self):
@@ -212,8 +211,7 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
             self._settings_container.photo_change_time = self._TRANSITION_TIMES[position]
             self._time_info.text = self._get_transition_time_string()
 
-        if self._can_increase_time():
-            self._increase_time_button.enabled = False
+        self._increase_time_button.enabled = self._can_increase_time()
         self._decrease_time_button.enabled = True
 
     def _get_transition_time_string(self):
