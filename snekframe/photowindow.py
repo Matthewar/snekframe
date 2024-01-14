@@ -24,15 +24,7 @@ from .fonts import FONTS
 from .settings import SettingsWindow, SettingsContainer
 
 class PhotoTitleBar:
-    """Titlebar
-
-    In normal display mode:
-    - Hidden
-    - Allows access to settings
-    - Shows album
-    Always:
-    - Shows time
-    """ # TODO: Update
+    """Titlebar"""
 
     #class Mode(Enum):
     #    Settings = auto()
@@ -41,32 +33,31 @@ class PhotoTitleBar:
     #    Selection = auto()
 
     def __init__(self, parent, open_selection, open_settings):
-        self._frame = ttk.Frame(master=parent, width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT, style="TitleBar.TFrame")
-        self._frame.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT)
+        self._frame = ttk.Frame(master=parent, style="TitleBar.TFrame")
 
-        self._title = elements.UpdateLabel(self._frame, anchor=tk.CENTER, justify=tk.CENTER, font=FONTS.title, style="TitleBar.TLabel")
+        self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
         self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar.TLabel")
-        self._datetime.place(relx=1.0, rely=0.5, anchor="e")
+        self._datetime = elements.AutoUpdateDateLabel(self._frame, justify=tk.RIGHT, font=FONTS.bold, style="TitleBar")
+        self._datetime.place(x=WINDOW_WIDTH-15, rely=0.5, anchor="e")
 
         title_menu = ttk.Frame(master=self._frame, style="TitleBar.TFrame")
         title_menu.place(x=2.5, rely=0.5, anchor="w")
-        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, colours=elements.TITLE_ICON_COLOURS)
+        self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, style="Title")
 
         def callback_open_settings():
             open_settings()
             self._title.text = "Settings"
 
-        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, "settings", selected=False)
-        self._settings_button.grid(row=0, column=0, pady=2.5)
+        self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, icon_name="settings", selected=False)
+        self._settings_button.grid(row=0, column=0, padx=(15, 5))
 
         def callback_open_selection():
             open_selection()
             self._title.text = "Select Photos"
 
-        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, "slideshow", selected=False)
-        self._select_button.grid(row=0, column=1, pady=2.5)
+        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
+        self._select_button.grid(row=0, column=1, padx=5)
 
         self._visible = False
 
@@ -701,12 +692,12 @@ class PhotoWindow:
         self._display_window.place(x=0, y=0, anchor="nw")
         self._current_window = self.OpenWindow.Display
 
-    def _destroy_photo_window(self):
-        if self._display_window is not None:
+    def _destroy_photo_window(self, display_window=True, selection_window=True):
+        if self._display_window is not None and display_window:
             self._display_window.place_forget()
             del self._display_window
             self._display_window = None
-        if self._selection_window is not None:
+        if self._selection_window is not None and selection_window:
             self._selection_window.place_forget()
             del self._selection_window
             self._selection_window = None
@@ -718,6 +709,6 @@ class PhotoWindow:
 
         if self._settings_window is None:
             # TODO: Need to be able to exit to previous window from here
-            self._settings_window = SettingsWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._selection, self._settings, self._destroy_photo_window)
-        self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
+            self._settings_window = SettingsWindow(self._window, self._selection, self._settings, self._destroy_photo_window)
+        self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.Settings
