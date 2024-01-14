@@ -112,12 +112,12 @@ class _StyleGenerator:
         styles.configure("TLabel", background=DEFAULT_BACKGROUND_COLOUR.string, foreground="#000000", font="DefaultFont")
         styles.configure("TButton", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string, font="DefaultFont")
 
-        styles.configure("Default.Button.TFrame", background=DEFAULT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+        styles.configure("Default.Button.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("Active.Default.Button.TFrame", background="#ffffff")
         styles.configure("Disabled.Default.Button.TFrame", background="#000000")
         styles.configure("Selected.Default.Button.TFrame", background="#ffffff", foreground="#000000")
 
-        styles.configure("Default.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+        styles.configure("Default.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("Active.Default.Button.TLabel", background="#ffffff")
         styles.configure("Disabled.Default.Button.TLabel", background="#000000")
         styles.configure("Selected.Default.Button.TLabel", background="#ffffff", foreground="#000000")
