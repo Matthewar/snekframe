@@ -1,6 +1,5 @@
 """UI Elements"""
 
-import collections
 import datetime
 
 import tkinter as tk
@@ -582,6 +581,7 @@ class TextToggleButton(_ToggleButton):
     def __init__(self, parent, select_command, unselect_command, text=None, selected_text=None, enabled=True, selected=False, style="Default", **label_kwargs):
         if text is None:
             raise TypeError()
+
         self._unselected_text = text
         if selected_text is not None:
             self._selected_text = text
