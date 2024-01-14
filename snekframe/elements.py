@@ -513,9 +513,8 @@ class IconTextRadioButton(_RadioButton):
             self._text.configure(style=f"Selected.{self._style}.TLabel")
 
         def bind(self, event, *bind_args, **bind_kwargs):
-            if event in ("<Button-1>", "<ButtonRelease-1>"):
-                self._icon.bind(event, *bind_args, **bind_kwargs)
-                self._text.bind(event, *bind_args, **bind_kwargs)
+            self._icon.bind(event, *bind_args, **bind_kwargs)
+            self._text.bind(event, *bind_args, **bind_kwargs)
             self._frame.bind(event, *bind_args, **bind_kwargs)
 
     def __init__(self, parent, command, text=None, icon_name=None, enabled=True, selected=True, style="Default"):
