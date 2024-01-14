@@ -325,11 +325,11 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
 
             if result is None:
                 # TODO: Log error
-                self._num_photos_label = "Error!"
-                self._num_albums_label = "Error!"
+                self._num_photos_label.text = "Error!"
+                self._num_albums_label.text = "Error!"
             else:
-                self._num_photos_label = str(result.num_photos)
-                self._num_albums_label = str(result.num_albums)
+                self._num_photos_label.text = str(result.num_photos)
+                self._num_albums_label.text = str(result.num_albums)
 
     def _trigger_rescan(self):
         """Rescan directory for photos"""
