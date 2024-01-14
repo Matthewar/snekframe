@@ -114,11 +114,12 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
         menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton)
 
         self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
-        self._photo_settings_button.grid(row=0, column=0)
+        self._photo_settings_button.grid(row=0, column=0, sticky="ew")
 
         system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="computer", selected=False)
-        system_settings_button.grid(row=1, column=0)
+        system_settings_button.grid(row=1, column=0, sticky="ew")
 
+        self._frame.grid_columnconfigure(0, weight=1)
         self._frame.grid_rowconfigure(2, weight=1)
 
     def reset(self):
@@ -249,23 +250,23 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         RIGHTCOLUMN = LEFTCOLUMN + 1
 
         shuffle_photos_label = ttk.Label(self._frame, text="Shuffle:", justify=tk.LEFT, font=FONTS.default)
-        shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
         shuffle_photos_settings = PhotoShuffleSettings(self._frame, settings_container, self._reorder_photos, destroy_photo_window)
-        shuffle_photos_settings.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        shuffle_photos_settings.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
 
         row += 1
 
-        photo_transition_label = ttk.Label(self._frame, text="Photo Transition Time", justify=tk.LEFT, font=FONTS.default)
-        photo_transition_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        photo_transition_label = ttk.Label(self._frame, text="Photo Transition Time:", justify=tk.LEFT, font=FONTS.default)
+        photo_transition_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
         photo_transition_controls = PhotoTransitionSettings(self._frame, settings_container)
-        photo_transition_controls.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        photo_transition_controls.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
 
         row += 1
 
         photos_info_label = ttk.Label(self._frame, text="Number of Photos:", justify=tk.LEFT, font=FONTS.default)
-        photos_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        photos_info_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
         self._num_photos_label = elements.UpdateLabel(self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default)
         self._num_photos_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
@@ -273,7 +274,7 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         row += 1
 
         albums_info_label = ttk.Label(self._frame, text="Number of Albums:", justify=tk.LEFT, font=FONTS.default)
-        albums_info_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        albums_info_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
         self._num_albums_label = elements.UpdateLabel(self._frame, initialtext="Loading", justify=tk.RIGHT, font=FONTS.default)
         self._num_albums_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
@@ -282,15 +283,15 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         row += 1
 
         rescan_photos_label = ttk.Label(self._frame, text="Rescan:", justify=tk.LEFT, font=FONTS.default)
-        rescan_photos_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        rescan_photos_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
         rescan_photos_button = elements.TextButton(self._frame, self._trigger_rescan, text="Go!")
         rescan_photos_button.grid(row=row, column=RIGHTCOLUMN, pady=5)
 
         row += 1
 
-        self._frame.grid_columnconfigure(0, weight=1)
-        self._frame.grid_columnconfigure(RIGHTCOLUMN+1, weight=1)
+        self._frame.grid_columnconfigure(LEFTCOLUMN, weight=1)
+        self._frame.grid_columnconfigure(RIGHTCOLUMN, weight=2)
         self._frame.grid_rowconfigure(0, weight=1)
         self._frame.grid_rowconfigure(row, weight=1)
 
@@ -379,10 +380,12 @@ class _SystemCallWindow(elements.LimitedFrameBaseElement):
         self._linked_windows = [] # Only one system call window can work at a time
 
         self._button = elements.TextToggleButton(self._frame, self._start_countdown, self.cancel, text=button_command_text, selected_text="Cancel")
-        self._button.place(relx=0.3, rely=0.5, anchor="e")
+        self._button.grid(row=0, column=0, padx=10)
 
         self._label = elements.UpdateLabel(self._frame, initialtext="")
-        self._label.place(relx=0.4, rely=0.5, anchor="w")
+        self._label.grid(row=0, column=1, padx=20)
+
+        self._frame.grid_columnconfigure(2, weight=1)
 
     def link_window(self, window):
         if not isinstance(window, _SystemCallWindow):
@@ -454,28 +457,28 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         COLUMNSPAN = RIGHTCOLUMN - LEFTCOLUMN + 1
 
         ip_addr_title_label = ttk.Label(self._frame, text="IP Address:", justify=tk.LEFT, font=FONTS.default)
-        ip_addr_title_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        ip_addr_title_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
         self._ip_addr_info_label = AutoUpdateIPLabel(self._frame, justify=tk.RIGHT, font=FONTS.default) # TODO: Add loading initial text?
-        self._ip_addr_info_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        self._ip_addr_info_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
         self._shutdown_window = _ShutdownCallWindow(self._frame)
-        self._shutdown_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN)
+        self._shutdown_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew")
 
         row += 1
 
         self._restart_window = _RestartCallWindow(self._frame)
-        self._restart_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN)
+        self._restart_window.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, padx=25, sticky="snew")
 
         row += 1
 
         current_db_version_label = ttk.Label(self._frame, text="Current Database Version:", justify=tk.LEFT, font=FONTS.default)
-        current_db_version_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        current_db_version_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
         db_version_label = ttk.Label(self._frame, text="v{:d}.{:d}".format(*get_database_version()), justify=tk.RIGHT, font=FONTS.default)
-        db_version_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        db_version_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
@@ -483,18 +486,18 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         self._current_version = tuple(current_version_string.split('.'))
 
         current_version_label = ttk.Label(self._frame, text="Current Version:", justify=tk.LEFT, font=FONTS.default)
-        current_version_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        current_version_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
         version_label = ttk.Label(self._frame, text=current_version_string, justify=tk.RIGHT, font=FONTS.default)
-        version_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        version_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
         upgrade_label = ttk.Label(self._frame, text="Upgrade Available:", justify=tk.LEFT, font=FONTS.default)
-        upgrade_label.grid(row=row, column=LEFTCOLUMN, pady=5)
+        upgrade_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5)
 
         self._upgrade_info_label = elements.UpdateLabel(self._frame)
-        self._upgrade_info_label.grid(row=row, column=RIGHTCOLUMN, pady=5)
+        self._upgrade_info_label.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5)
 
         row += 1
 
@@ -503,19 +506,19 @@ class SystemSettings(elements.LimitedFrameBaseElement):
         self._upgrade_check_thread = None
 
         self._upgrade_button = elements.TextButton(self._frame, text="Upgrade", enabled=False, command=self._run_upgrade)
-        self._upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN)
+        self._upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5)
 
         row += 1
 
         self._check_upgrade_button = elements.TextButton(self._frame, text="Check for upgrade", command=self._check_upgrade)
-        self._check_upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN)
+        self._check_upgrade_button.grid(row=row, column=LEFTCOLUMN, columnspan=COLUMNSPAN, pady=5)
         self._check_upgrade_button.invoke()
         self._check_upgrade()
 
         row += 1
 
-        self._frame.grid_columnconfigure(0, weight=1)
-        self._frame.grid_columnconfigure(RIGHTCOLUMN+1, weight=1)
+        self._frame.grid_columnconfigure(LEFTCOLUMN, weight=1)
+        self._frame.grid_columnconfigure(RIGHTCOLUMN, weight=2)
         self._frame.grid_rowconfigure(0, weight=1)
         self._frame.grid_rowconfigure(row, weight=1)
 

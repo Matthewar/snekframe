@@ -297,7 +297,7 @@ class TextButton(_Button):
         if text is None:
             raise TypeError()
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, style=self._style)
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, text=text, style=self._style, padding=5)
 
     def _style_normal(self):
         self._element.configure(style=self._style)
@@ -403,7 +403,7 @@ class TextRadioButton(_RadioButton):
             raise TypeError()
 
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, style=self._style)
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, selected=selected, text=text, style=self._style, padding=5)
 
     def _style_normal(self):
         self._element.configure(style=self._style)
@@ -475,6 +475,7 @@ class IconTextRadioButton(_RadioButton):
 
             self._icon.grid(row=0, column=0, padx=(5.0, 2.5))
             self._text.grid(row=0, column=1, padx=(2.5, 5.0))
+            self._frame.grid_rowconfigure(0, weight=1)
 
         def style_normal(self):
             self._frame.configure(style=f"{self._style}.TFrame")
