@@ -125,10 +125,6 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
         """Bring to default viewstate"""
         self._photo_settings_button.invoke()
 
-    def winfo_reqwidth(self):
-        """Call the winfo_reqwidth of the underlying frame"""
-        return self._frame.winfo_reqwidth()
-
 class PhotoShuffleSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent, settings_container, reorder_photos, destroy_photo_window):
         super().__init__(parent, {})
@@ -608,11 +604,13 @@ class SettingsWindow:
         Photo = auto()
         System = auto()
 
+    _MENU_WIDTH = 300
+
     def __init__(self, parent, selection, settings, destroy_photo_window): # TODO: Previous screen if possible
         self._main_window = ttk.Frame(master=parent)
 
         self._menu = SettingsMenu(self._main_window, self._open_photo_settings, self._open_system_settings)
-        self._menu.place(x=0, y=0, anchor="nw", height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+        self._menu.place(x=0, y=0, anchor="nw", height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT, width=self._MENU_WIDTH)
         self._current_window = None
 
         self._photo_selection = selection
@@ -639,7 +637,7 @@ class SettingsWindow:
 
         if self._photo_window is None: # TODO: Is there any reason to not have this built, how much memory
             self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
-        self._photo_window.place(x=self._menu.winfo_reqwidth(), y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH-self._menu.winfo_reqwidth())
+        self._photo_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.Photo
 
     def _open_system_settings(self):
@@ -647,7 +645,7 @@ class SettingsWindow:
 
         if self._system_window is None:
             self._system_window = SystemSettings(self._main_window)
-        self._system_window.place(x=self._menu.winfo_reqwidth(), y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH-self._menu.winfo_reqwidth())
+        self._system_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.System
 
     def place(self, **place_kwargs):
