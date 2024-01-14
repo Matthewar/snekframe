@@ -208,6 +208,10 @@ class _Button(_LimitedElement):
         self._enabled = enabled
         self._command = command
 
+        self._style_initial()
+
+    def _style_initial(self):
+        """Run during constructor to style button"""
         if not self._enabled:
             self._style_disabled()
         else:
@@ -335,6 +339,12 @@ class _RadioButton(_Button):
 
         self._selected = selected
         super().__init__(parent, element_cls, command, user_element_kwargs, enabled=enabled, **element_kwargs)
+
+    def _style_initial(self):
+        if self._selected:
+            self._style_selected()
+        else:
+            super()._style_initial()
 
     def _style_selected(self):
         raise NotImplementedError()
