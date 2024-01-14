@@ -376,8 +376,9 @@ class _RadioButton(_Button):
         if not self._enabled or self._selected:
             # Don't trigger if already selected (or disabled)
             return
-        self._style_selected()
         self._command()
+        self._style_selected()
+        self._selected = True
 
     def _callback_leave(self, event):
         if not self._clicked[0]:
