@@ -596,6 +596,8 @@ class TextToggleButton(_ToggleButton):
 
         self._unselected_text = text
         if selected_text is not None:
+            self._selected_text = selected_text
+        else:
             self._selected_text = text
 
         if selected:
@@ -603,11 +605,14 @@ class TextToggleButton(_ToggleButton):
         else:
             initialtext = self._unselected_text
 
+        self._text = tk.StringVar(value=initialtext)
+
         self._style = styles.get_label_style_name(f"{style}.Button")
-        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, text=initialtext, style=self._style)
+        super().__init__(parent, ttk.Label, select_command, unselect_command, label_kwargs, enabled=enabled, selected=selected, textvariable=self._text, style=self._style, padding=5)
 
     def _style_normal(self):
-        self._element.configure(text=self._unselected_text, style=self._style)
+        self._text.set(self._unselected_text)
+        self._element.configure(style=self._style)
 
     def _style_active(self):
         self._element.configure(style=f"Active.{self._style}")
@@ -616,4 +621,5 @@ class TextToggleButton(_ToggleButton):
         self._element.configure(style=f"Disabled.{self._style}")
 
     def _style_selected(self):
-        self._element.configure(text=self._selected_text, style=f"Selected.{self._style}")
+        self._text.set(self._selected_text)
+        self._element.configure(style=f"Selected.{self._style}")
