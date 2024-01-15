@@ -31,7 +31,7 @@ sudo systemctl disable bluetooth
 This isn't visible to users because the program takes the entire screen.
 It also can have pop-ups which could appear over the program.
 
-Useful pop-ups such as low voltage warnings can appear in the notifications window. # TODO: MAYBE MAKE A SEPARATE ICON FOR THIS?
+If the power supply isn't sufficient (under-voltage warning) the notification that would usually appear on the taskbar will appear on the title bar of the application.
 
 To disable this, edit `/etc/xdg/lxsession/LXDE-pi/autostart`
 ```
