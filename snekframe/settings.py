@@ -613,8 +613,8 @@ class BrightnessSettings(elements.LimitedFrameBaseElement):
 
         self._decrease_brightness_button = elements.IconButton(self._frame, self._decrement_brightness, "minus", enabled=False)
         self._current_brightness = elements.UpdateLabel(self._frame, initialtext=0, variabletype=tk.IntVar, style="Default")
-        self._increase_brightness_button = elements.IconButton(self._frame, self._increase_brightness_button, "plus", enabled=False)
         self._max_brightness = elements.UpdateLabel(self._frame, initialtext=0, variabletype=tk.IntVar, style="Default")
+        self._increase_brightness_button = elements.IconButton(self._frame, self._increment_brightness, "plus", enabled=False)
 
         self._get_brightness()
 
@@ -628,13 +628,14 @@ class BrightnessSettings(elements.LimitedFrameBaseElement):
 
         column = 0
         for element in columns:
-            element.grid(row=0, column=column, padx=25)
-            column += 1
             self._frame.grid_columnconfigure(column, weight=1)
             column += 1
+            element.grid(row=0, column=column, padx=25)
+            column += 1
+        self._frame.grid_columnconfigure(column, weight=1)
 
     def _get_brightness(self):
-        brightness_info = subprocess.run(["ddcutil", "-t", "getvcp", "10"], check=True, text=True, stdout=subprocess.PIPE).stdout.split(' ')
+        brightness_info = subprocess.run(["ddcutil", "-t", "getvcp", "10"], check=True, text=True, stdout=subprocess.PIPE).stdout.rstrip().split(' ')
         # 0 - VCP
         # 1 - <Code>
         # 2 - C
@@ -656,7 +657,7 @@ class BrightnessSettings(elements.LimitedFrameBaseElement):
         if not isinstance(value, int):
             raise TypeError("Brightness value must be an integer")
 
-        if value < 0 or value > self._max_brightness.text:
+        if value >= 0 and value <= self._max_brightness.text:
             brightness_result = subprocess.run(["ddcutil", "-t", "setvcp", "10", f"{value:d}"], check=True, text=True)
             self._current_brightness.text = value
             self._decrease_brightness_button.enabled = self._can_decrease_brightness()
