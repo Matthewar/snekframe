@@ -421,8 +421,9 @@ class _SystemCallWindow(elements.LimitedFrameBaseElement):
 
         if seconds > 0:
             self._countdown_job_id = self._frame.after(300, self._continue_countdown)
-        else:
-            self._system_call()
+        elif not self._system_call():
+            self.cancel()
+            self._label.text = "Failed to run command!"
 
     def cancel(self):
         if self._countdown_job_id is not None:
@@ -442,14 +443,22 @@ class _ShutdownCallWindow(_SystemCallWindow):
         super().__init__(parent, "Shutdown", "Shutting down")
 
     def _system_call(self):
-        subprocess.run(["sudo", "/sbin/shutdown", "now"])
+        try:
+            subprocess.run(["sudo", "/sbin/shutdown", "now"], check=True)
+        except subprocess.CalledProcessError:
+            return False
+        return True
 
 class _RestartCallWindow(_SystemCallWindow):
     def __init__(self, parent):
         super().__init__(parent, "Restart", "Restarting")
 
     def _system_call(self):
-        subprocess.run(["sudo", "/sbin/reboot"])
+        try:
+            subprocess.run(["sudo", "/sbin/reboot"], check=True)
+        except subprocess.CalledProcessError:
+            return False
+        return True
 
 class SystemSettings(elements.LimitedFrameBaseElement):
     def __init__(self, parent):
