@@ -122,9 +122,9 @@ class PhotoTitleBar:
 
         def callback_open_voltage():
             open_voltage_warning()
-            self._title.text = "Low Voltage Warning"
+            self._title.text = "Low Voltage"
 
-        self._voltage_button = self._title_menu_buttons.add_button(title_menu, callback_open_voltage, button_cls=_VoltageWarningIconRadioButton, selected=False, enabled=False, show_warning_callback=self._show_voltage_warning, hide_warning_callback=self._hide_voltage_warning, close_warning_callback=callback_open_settings)
+        self._voltage_button = self._title_menu_buttons.add_button(title_menu, callback_open_voltage, button_cls=_VoltageWarningIconRadioButton, selected=False, enabled=False, show_warning_callback=self._show_voltage_warning, hide_warning_callback=self._hide_voltage_warning, close_warning_callback=callback_open_settings, style="Voltage")
         # Setup grid options
         self._voltage_button.grid(row=0, column=column, padx=5)
         self._voltage_button.grid_remove()
