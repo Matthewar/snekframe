@@ -27,6 +27,17 @@ Can also disable bluetooth service because it's unnecessary
 sudo systemctl disable bluetooth
 ```
 
+#### Disable LX Panel
+This isn't visible to users because the program takes the entire screen.
+It also can have pop-ups which could appear over the program.
+
+Useful pop-ups such as low voltage warnings can appear in the notifications window. # TODO: MAYBE MAKE A SEPARATE ICON FOR THIS?
+
+To disable this, edit `/etc/xdg/lxsession/LXDE-pi/autostart`
+```
+#@lxpanel --profile LXDE-pi
+```
+
 ### 2. Setup Root User
 Normal root user setup (dotfiles, etc.).
 
@@ -102,9 +113,10 @@ Can review this has been successfully applied with `sudo systemctl list-timers a
 
 ### 4. Setup Program User
 User with autologin, this stores relevant files and is used to run the program.
+`video` group allows the user to access the `vcgencmd` utility.
 
 ```bash
-sudo useradd --comment "Photo display program" --create-home snekframe
+sudo useradd --comment "Photo display program" --create-home snekframe --groups video
 sudo passwd snekframe
 # Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4

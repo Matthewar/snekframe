@@ -6,6 +6,7 @@ from enum import Enum, auto
 import logging
 import os.path
 import time
+import subprocess
 
 import sqlalchemy
 from sqlalchemy.sql.expression import func, select
@@ -23,6 +24,60 @@ from .db import SharedBase, RUNTIME_ENGINE, RUNTIME_SESSION, PERSISTENT_SESSION,
 from .fonts import FONTS
 from .settings import SettingsWindow, SettingsContainer
 
+class _VoltageWarningIconRadioButton(elements.IconRadioButton):
+    _REFRESH_TIME = 30 * 60 * 1000 # 30 minutes
+
+    def __init__(self, parent, open_warning_callback, show_warning_callback=None, hide_warning_callback=None, close_warning_callback=None, enabled=False, selected=False, style="Voltage", **radio_kwargs):
+        if show_warning_callback is None or hide_warning_callback is None or close_warning_callback is None:
+            raise TypeError()
+
+        self._show_warning = show_warning_callback
+        self._hide_warning = hide_warning_callback
+        self._close_warning = close_warning_callback
+
+        super().__init__(parent, open_warning_callback, icon_name="bolt", enabled=enabled, selected=selected, style=style, **radio_kwargs)
+        self._element.after(1000, self._update_state) # Wait for construction to finish before trying to update the state
+
+    def _set_enable(self, enable):
+        super()._set_enable(enable)
+        if not self._enabled:
+            self._hide_warning()
+        else:
+            self._show_warning()
+
+    def _update_state(self):
+        check_throttled = subprocess.run(["vcgencmd", "get_throttled"], check=True, text=True, stdout=subprocess.PIPE)
+        throttled_value = int(check_throttled.stdout.rstrip('\n')[len("throttled="):], 16)
+
+        under_voltage = bool(throttled_value & 0x1)
+        if under_voltage:
+            if self._selected or self._enabled:
+                # Do nothing, currently displaying the voltage symbol
+                return
+            self.enabled = True
+            self._show_warning()
+        else:
+            if self._selected:
+                self._hide_warning()
+                self._close_warning()
+            elif not self._enabled:
+                self.enabled = False
+                self._hide_warning()
+
+        self._element.after(self._REFRESH_TIME, self._update_state)
+
+class VoltageWarningWindow(elements.LimitedFrameBaseElement):
+    def __init__(self, parent):
+        super().__init__(parent, {})
+
+        lines = [
+            "Low voltage detected!",
+            "Power supply may be insufficient, recommended 5V 2.5A supply"
+        ]
+
+        info_label = ttk.Label(master=parent, text="\n".join(lines), justify=tk.CENTER)
+        info_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
 class PhotoTitleBar:
     """Titlebar"""
 
@@ -32,7 +87,7 @@ class PhotoTitleBar:
     #    PhotosHidden = auto()
     #    Selection = auto()
 
-    def __init__(self, parent, open_selection, open_settings):
+    def __init__(self, parent, open_selection, open_settings, open_voltage_warning):
         self._frame = ttk.Frame(master=parent, style="TitleBar.TFrame")
 
         self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
@@ -45,21 +100,42 @@ class PhotoTitleBar:
         title_menu.place(x=2.5, rely=0.5, anchor="w")
         self._title_menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconRadioButton, style="Title")
 
+        column = 0
+
         def callback_open_settings():
             open_settings()
             self._title.text = "Settings"
 
         self._settings_button = self._title_menu_buttons.add_button(title_menu, callback_open_settings, icon_name="settings", selected=False)
-        self._settings_button.grid(row=0, column=0, padx=(15, 5))
+        self._settings_button.grid(row=0, column=column, padx=(15, 5))
+
+        column += 1
 
         def callback_open_selection():
             open_selection()
             self._title.text = "Select Photos"
 
         self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
-        self._select_button.grid(row=0, column=1, padx=5)
+        self._select_button.grid(row=0, column=column, padx=5)
+
+        column += 1
+
+        def callback_open_voltage():
+            open_voltage_warning()
+            self._title.text = "Low Voltage"
+
+        self._voltage_button = self._title_menu_buttons.add_button(title_menu, callback_open_voltage, button_cls=_VoltageWarningIconRadioButton, selected=False, enabled=False, show_warning_callback=self._show_voltage_warning, hide_warning_callback=self._hide_voltage_warning, close_warning_callback=callback_open_settings, style="Voltage")
+        # Setup grid options
+        self._voltage_button.grid(row=0, column=column, padx=5)
+        self._voltage_button.grid_remove()
 
         self._visible = False
+
+    def _show_voltage_warning(self):
+        self._voltage_button.grid()
+
+    def _hide_voltage_warning(self):
+        self._voltage_button.grid_remove()
 
     @property
     def visible(self):
@@ -586,6 +662,7 @@ class PhotoWindow:
         Select = auto()
         Display = auto()
         Settings = auto()
+        LowVoltageWarning = auto()
 
 
     def __init__(self, frame):
@@ -612,10 +689,11 @@ class PhotoWindow:
                 if not found_photos:
                     self._selection.set_no_selection()
 
-        self._title_bar = PhotoTitleBar(self._window, self._open_photo_select_window, self._open_settings)
+        self._title_bar = PhotoTitleBar(self._window, self._open_photo_select_window, self._open_settings, self._open_voltage_warning)
         self._selection_window = None
         self._display_window = None
         self._settings_window = None
+        self._voltage_warning_window = None
 
         self._current_window = None
 
@@ -639,6 +717,9 @@ class PhotoWindow:
         elif self._current_window == self.OpenWindow.Settings:
             assert self._settings_window is not None
             self._settings_window.place_forget()
+        elif self._current_window == self.OpenWindow.LowVoltageWarning:
+            assert self._voltage_warning_window is not None
+            self._voltage_warning_window.place_forget()
         else:
             raise TypeError()
 
@@ -712,3 +793,13 @@ class PhotoWindow:
             self._settings_window = SettingsWindow(self._window, self._selection, self._settings, self._destroy_photo_window)
         self._settings_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.Settings
+
+    def _open_voltage_warning(self):
+        if not self._title_bar.visible:
+            self._title_bar.place()
+        self._close_current_window()
+
+        if self._voltage_warning_window is None:
+            self._voltage_warning_window = VoltageWarningWindow(self._window)
+        self._voltage_warning_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+        self._current_window = self.OpenWindow.LowVoltageWarning
