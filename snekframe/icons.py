@@ -35,8 +35,9 @@ class _Icons:
         "slideshow": "slideshow.svg",
         "shuffle": "shuffle.svg",
         "photo": "photo.svg",
-        "computer": "computer.svg",
         "bolt": "bolt.svg",
+        "system": "power_settings.svg",
+        "display": "display_settings.svg",
     }
     _IMAGE_BASE_PATH = importlib.resources.files(images)
 
