@@ -108,19 +108,23 @@ class SettingsContainer:
 
 class SettingsMenu(elements.LimitedFrameBaseElement):
     """Sidebar menu for various settings pages"""
-    def __init__(self, parent, open_photo_settings, open_system_settings):
+    def __init__(self, parent, open_photo_settings, open_system_settings, open_display_settings):
         super().__init__(parent, {})
 
         menu_buttons = elements.RadioButtonSet(default_button_cls=elements.IconTextRadioButton)
 
         self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
-        self._photo_settings_button.grid(row=0, column=0, sticky="ew")
+        button_elements = (
+            self._photo_settings_button,
+            menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="system", selected=False),
+            menu_buttons.add_button(self._frame, open_display_settings, text="Display", icon_name="display", selected=False),
+        )
 
-        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="system", selected=False)
-        system_settings_button.grid(row=1, column=0, sticky="ew")
+        for row, element in enumerate(button_elements):
+            element.grid(row=row, column=0, sticky="ew")
 
         self._frame.grid_columnconfigure(0, weight=1)
-        self._frame.grid_rowconfigure(2, weight=1)
+        self._frame.grid_rowconfigure(len(button_elements), weight=1)
 
     def reset(self):
         """Bring to default viewstate"""
@@ -603,17 +607,100 @@ class SystemSettings(elements.LimitedFrameBaseElement):
                 self._upgrade_info_text = f"Version v{latest_major}.{latest_minor}.{latest_patch} now available"
                 self._upgrade_available = (latest_major, latest_minor, latest_patch)
 
+class BrightnessSettings(elements.LimitedFrameBaseElement):
+    def __init__(self, parent):
+        super().__init__(parent, {})
+
+        self._decrease_brightness_button = elements.IconButton(self._frame, self._decrement_brightness, "minus", enabled=False)
+        self._current_brightness = elements.UpdateLabel(self._frame, initialtext=0, variabletype=tk.IntVar, style="Default")
+        self._increase_brightness_button = elements.IconButton(self._frame, self._increase_brightness_button, "plus", enabled=False)
+        self._max_brightness = elements.UpdateLabel(self._frame, initialtext=0, variabletype=tk.IntVar, style="Default")
+
+        self._get_brightness()
+
+        columns = (
+            self._decrease_brightness_button,
+            ttk.Label(self._frame, text="0", font=FONTS.default),
+            self._current_brightness,
+            self._max_brightness,
+            self._increase_brightness_button,
+        )
+
+        column = 0
+        for element in columns:
+            element.grid(row=0, column=column, padx=25)
+            column += 1
+            self._frame.grid_columnconfigure(column, weight=1)
+            column += 1
+
+    def _get_brightness(self):
+        brightness_info = subprocess.run(["ddcutil", "-t", "getvcp", "10"], check=True, text=True, stdout=subprocess.PIPE).stdout.split(' ')
+        # 0 - VCP
+        # 1 - <Code>
+        # 2 - C
+        # 3 - <Current Value>
+        # 4 - <Max Brightness>
+        self._current_brightness.text = brightness_info[3]
+        self._max_brightness.text = brightness_info[4]
+
+        self._decrease_brightness_button.enabled = self._can_decrease_brightness()
+        self._increase_brightness_button.enabled = self._can_increase_brightness()
+
+    def _can_increase_brightness(self):
+        return self._current_brightness.text < self._max_brightness.text
+
+    def _can_decrease_brightness(self):
+        return self._current_brightness.text > 0
+
+    def _set_brightness(self, value : int):
+        if not isinstance(value, int):
+            raise TypeError("Brightness value must be an integer")
+
+        if value < 0 or value > self._max_brightness.text:
+            brightness_result = subprocess.run(["ddcutil", "-t", "setvcp", "10", f"{value:d}"], check=True, text=True)
+            self._current_brightness.text = value
+            self._decrease_brightness_button.enabled = self._can_decrease_brightness()
+            self._increase_brightness_button.enabled = self._can_increase_brightness()
+
+    def _increment_brightness(self):
+        self._set_brightness(self._current_brightness.text + 5)
+
+    def _decrement_brightness(self):
+        self._set_brightness(self._current_brightness.text - 5)
+
+class DisplaySettings(elements.LimitedFrameBaseElement):
+    def __init__(self, parent):
+        super().__init__(parent, {})
+
+        row = 1
+        LEFTCOLUMN = 0
+        RIGHTCOLUMN = 1
+
+        brightness_label = ttk.Label(self._frame, text="Brightness:", justify=tk.LEFT, font=FONTS.default)
+        brightness_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
+
+        brightness_settings = BrightnessSettings(self._frame)
+        brightness_settings.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
+
+        row += 1
+
+        self._frame.grid_columnconfigure(LEFTCOLUMN, weight=1)
+        self._frame.grid_columnconfigure(RIGHTCOLUMN, weight=2)
+        self._frame.grid_rowconfigure(0, weight=1)
+        self._frame.grid_rowconfigure(row, weight=1)
+
 class SettingsWindow:
     class OpenWindow(Enum):
         Photo = auto()
         System = auto()
+        Display = auto()
 
     _MENU_WIDTH = 300
 
     def __init__(self, parent, selection, settings, destroy_photo_window): # TODO: Previous screen if possible
         self._main_window = ttk.Frame(master=parent)
 
-        self._menu = SettingsMenu(self._main_window, self._open_photo_settings, self._open_system_settings)
+        self._menu = SettingsMenu(self._main_window, self._open_photo_settings, self._open_system_settings, self._open_display_settings)
         self._menu.place(x=0, y=0, anchor="nw", height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT, width=self._MENU_WIDTH)
         self._current_window = None
 
@@ -623,6 +710,7 @@ class SettingsWindow:
 
         self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
         self._system_window = SystemSettings(self._main_window)
+        self._display_window = DisplaySettings(self._main_window)
 
     def _close_current_window(self):
         if self._current_window is None:
@@ -631,6 +719,8 @@ class SettingsWindow:
             self._photo_window.place_forget()
         elif self._current_window == self.OpenWindow.System:
             self._system_window.place_forget()
+        elif self._current_window == self.OpenWindow.Display:
+            self._display_window.place_forget()
         else:
             raise TypeError()
 
@@ -651,6 +741,14 @@ class SettingsWindow:
             self._system_window = SystemSettings(self._main_window)
         self._system_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.System
+
+    def _open_display_settings(self):
+        self._close_current_window()
+
+        if self._display_window is None:
+            self._display_window = DisplaySettings(self._main_window)
+        self._display_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
+        self._current_window = self.OpenWindow.Display
 
     def place(self, **place_kwargs):
         self._main_window.place(**place_kwargs)

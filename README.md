@@ -113,10 +113,11 @@ Can review this has been successfully applied with `sudo systemctl list-timers a
 
 ### 4. Setup Program User
 User with autologin, this stores relevant files and is used to run the program.
-`video` group allows the user to access the `vcgencmd` utility.
+- `video` group allows the user to access the `vcgencmd` utility
+- `i2c` group allows the user to access the i2c bus for the `ddcutil` utility
 
 ```bash
-sudo useradd --comment "Photo display program" --create-home snekframe --groups video
+sudo useradd --comment "Photo display program" --create-home snekframe --groups video,i2c
 sudo passwd snekframe
 # Boot into autologin user (we specify the user to login to below)
 sudo raspi-config nonint do_boot_behaviour B4
