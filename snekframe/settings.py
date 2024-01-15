@@ -116,7 +116,7 @@ class SettingsMenu(elements.LimitedFrameBaseElement):
         self._photo_settings_button = menu_buttons.add_button(self._frame, open_photo_settings, text="Photos", icon_name="photo", selected=False)
         self._photo_settings_button.grid(row=0, column=0, sticky="ew")
 
-        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="computer", selected=False)
+        system_settings_button = menu_buttons.add_button(self._frame, open_system_settings, text="System", icon_name="system", selected=False)
         system_settings_button.grid(row=1, column=0, sticky="ew")
 
         self._frame.grid_columnconfigure(0, weight=1)
