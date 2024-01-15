@@ -46,6 +46,7 @@ def setup_viewed_photos(shuffle=False, album=None):
 
         if not found_photos:
             persistent_session.execute(delete(CurrentDisplay))
+            persistent_session.commit()
             return False
         else:
             updated = persistent_session.execute(update(CurrentDisplay).values(album=album, all_photos=album is None).returning(CurrentDisplay.id)).one_or_none()
@@ -60,7 +61,7 @@ def load_photo_files():
     RuntimeBase.metadata.create_all(RUNTIME_ENGINE)
     with PERSISTENT_SESSION() as persistent_session, RUNTIME_SESSION() as runtime_session:
         existing_photos = persistent_session.scalars(select(PhotoList.filename, PhotoList.album))
-        for row in runtime_session:
+        for row in existing_photos:
             runtime_session.add(ExistingFiles(photo_path=os.path.join(*row), found=False))
 
         persistent_session.execute(delete(PhotoList))
@@ -102,5 +103,6 @@ def load_photo_files():
 
         runtime_session.rollback()
 
+        runtime_session.execute(delete(NumPhotos))
         runtime_session.add(NumPhotos(num_photos=num_photos, num_albums=len(albums)))
         runtime_session.commit()

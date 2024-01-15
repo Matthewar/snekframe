@@ -87,6 +87,22 @@ _ICON_STYLES = {
         "background": HIGHLIGHT_BACKGROUND_COLOUR,
         "pathcolour": Colour(0xffffff),
     },
+    "Voltage.Icon.Button.TLabel": {
+        "background": HIGHLIGHT_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xff0000),
+    },
+    "Active.Voltage.Icon.Button.TLabel": {
+        "background": HIGHLIGHT_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+    "Disabled.Voltage.Icon.Button.TLabel": {
+        "background": HIGHLIGHT_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0x000000),
+    },
+    "Selected.Voltage.Icon.Button.TLabel": {
+        "background": HIGHLIGHT_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
     "Default.IconText.Button.TLabel": {
         "background": DEFAULT_BACKGROUND_COLOUR,
         "pathcolour": HIGHLIGHT_BACKGROUND_COLOUR,
@@ -124,6 +140,7 @@ class _StyleGenerator:
 
         styles.configure("Default.Icon.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Title.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
+        styles.configure("Voltage.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
 
         styles.configure("Default.IconText.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Active.Default.IconText.Button.TLabel", background=Colour(0xffffff).string)
