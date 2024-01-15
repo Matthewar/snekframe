@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.1.0](https://github.com/Matthewar/snekframe/releases/tag/v0.1.0)
+- Added low voltage warning when insufficient power supply detected
+- Improved settings page layout
+- Improved styling - fonts and colours
+- Settings to control screen brightness
+- Fix for file system rescanning (#34)
+
 ## [v0.0.3](https://github.com/Matthewar/snekframe/releases/tag/v0.0.3)
 - Fix for upgrade functions
 
