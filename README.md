@@ -32,7 +32,7 @@ This isn't visible to users because the program takes the entire screen.
 It also can have pop-ups which could appear over the program.
 
 We also switch off the desktop because its hidden under the application.
-Even if the desktop crashes an empty desktop doesn't provide any useful functionality.
+Even if the application crashes an empty desktop doesn't provide any useful functionality.
 
 If the power supply isn't sufficient (under-voltage warning) the notification that would usually appear on the taskbar will appear on the title bar of the application.
 
