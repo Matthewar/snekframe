@@ -27,15 +27,19 @@ Can also disable bluetooth service because it's unnecessary
 sudo systemctl disable bluetooth
 ```
 
-#### Disable LX Panel
+#### Disable LX Panel and Desktop
 This isn't visible to users because the program takes the entire screen.
 It also can have pop-ups which could appear over the program.
 
+We also switch off the desktop because its hidden under the application.
+Even if the desktop crashes an empty desktop doesn't provide any useful functionality.
+
 If the power supply isn't sufficient (under-voltage warning) the notification that would usually appear on the taskbar will appear on the title bar of the application.
 
-To disable this, edit `/etc/xdg/lxsession/LXDE-pi/autostart`
+To disable these, edit `/etc/xdg/lxsession/LXDE-pi/autostart`
 ```
 #@lxpanel --profile LXDE-pi
+#@pcmanfm --desktop --profile LXDE-pi
 ```
 
 ### 2. Setup Root User
