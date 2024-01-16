@@ -6,8 +6,7 @@ from sqlalchemy import String, Time, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.sql.expression import select
 
-from . import params
-from .params import MAX_FILENAME_SIZE
+from .. import params
 
 class PersistentBase(DeclarativeBase):
     """Program Base DB Class"""
@@ -36,7 +35,7 @@ class CurrentDisplay(PersistentBase):
     __tablename__ = "displayed_album"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    album: Mapped[Optional[str]] = mapped_column(String(MAX_FILENAME_SIZE), nullable=True)
+    album: Mapped[Optional[str]] = mapped_column(String(params.MAX_FILENAME_SIZE), nullable=True)
     all_photos: Mapped[bool]
 
 class Settings(PersistentBase):
@@ -62,8 +61,8 @@ class PhotoList(SharedBase):
     __tablename__ = "photolist"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    filename: Mapped[str] = mapped_column(String(MAX_FILENAME_SIZE))
-    album: Mapped[str] = mapped_column(String(MAX_FILENAME_SIZE))
+    filename: Mapped[str] = mapped_column(String(params.MAX_FILENAME_SIZE))
+    album: Mapped[str] = mapped_column(String(params.MAX_FILENAME_SIZE))
     #caption: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
 
 RUNTIME_ENGINE = create_engine("sqlite://")
@@ -78,7 +77,7 @@ class ExistingFiles(RuntimeBase):
     __tablename__ = "existingphotos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    photo_path: Mapped[str] = mapped_column(String(MAX_FILENAME_SIZE*2))
+    photo_path: Mapped[str] = mapped_column(String(params.MAX_FILENAME_SIZE*2))
     found: Mapped[bool]
 
 class NumPhotos(RuntimeBase):
