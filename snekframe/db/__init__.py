@@ -1,5 +1,5 @@
-"""DB Entry Point
+"""DB Entry Point"""
 
-Provides current classes and functions
-"""
-from ._current import *
+from ._v0 import Settings as SettingsV0
+from ._v1 import PhotoList as PhotoListV1
+from ._base import PERSISTENT_ENGINE, PERSISTENT_SESSION, RUNTIME_ENGINE, RUNTIME_SESSION

@@ -9,6 +9,7 @@ FILES_LOCATION = os.path.expanduser("~/.snekframe")
 DATABASE_NAME = "photos.db"
 PHOTOS_LOCATION = "files"
 
+MAX_PATH_SIZE = 4096
 MAX_FILENAME_SIZE = 256
 
 TITLE_BAR_HEIGHT = 75
