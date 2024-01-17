@@ -6,12 +6,11 @@ import os.path
 import sys
 
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
 
-from . import db, styles
+from . import db, styles, params
 from .fonts import FONTS
 from .styles import STYLES
-from .params import WINDOW_WIDTH, WINDOW_HEIGHT, FILES_LOCATION, PHOTOS_LOCATION, DATABASE_NAME
 from .photowindow import PhotoWindow
 
 class EntryWindow:
@@ -54,17 +53,17 @@ class VersionWindow:
         title_label = ttk.Label(master=self._window, text="Version Change Detected", font=FONTS.title)
 
         current_version = (current_major, current_minor)
-        program_version = (db.DATABASE_VERSION_MAJOR, db.DATABASE_VERSION_MINOR)
+        program_version = (db.version.DATABASE_VERSION_MAJOR, db.version.DATABASE_VERSION_MINOR)
 
         if program_version < current_version:
             info_text = "Database version is newer than installed program."
             upgrade_button = False
             continue_button = False
-        elif db.DATABASE_VERSION_MAJOR > current_major:
+        elif db.version.DATABASE_VERSION_MAJOR > current_major:
             info_text = "Database requires updating in order to continue."
             upgrade_button = True
             continue_button = False
-        elif db.DATABASE_VERSION_MINOR > current_minor:
+        elif db.version.DATABASE_VERSION_MINOR > current_minor:
             info_text = "New database version detected, upgrade recommended."
             upgrade_button = True
             continue_button = True
@@ -72,7 +71,12 @@ class VersionWindow:
             raise Exception("Shouldn't hit this")
 
         subtitle_label = ttk.Label(master=self._window, text=info_text, fonts=FONTS.subtitle, justify=tk.CENTER)
-        info_label = ttk.Label(master=self._window, text=f"Current Version: {current_major}.{current_minor} - New Version: {db.DATABASE_VERSION_MAJOR}.{db.DATABASE_VERSION_MINOR}", fonts=FONTS.default, justify=tk.CENTER)
+        info_label = ttk.Label(
+            master=self._window,
+            text=f"Current Version: {current_major}.{current_minor} - New Version: {db.version.DATABASE_VERSION_MAJOR}.{db.version.DATABASE_VERSION_MINOR}",
+            fonts=FONTS.default,
+            justify=tk.CENTER
+        )
 
         elements = [title_label, subtitle_label, info_label]
 
@@ -82,7 +86,8 @@ class VersionWindow:
             elements.append(ttk.Button(master=self._window, text="Continue (without upgrading)", command=exit_window_callback))
 
     def _trigger_upgrade(self):
-        raise NotImplementedError("Currently on version v0.0, no reason to upgrade")
+        upgrade_database()
+        self._exit_window_callback()
 
     def place(self, **place_args):
         """Place window in parent"""
@@ -97,7 +102,7 @@ class MainWindow:
     def __init__(self):
         self._root = tk.Tk()
         self._root.title("Photos")
-        self._root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+        self._root.geometry(f"{params.WINDOW_WIDTH}x{params.WINDOW_HEIGHT}")
         self._root.resizable(False, False)
         self._root.attributes("-fullscreen", True)
         self._root.configure(background=styles.DEFAULT_BACKGROUND_COLOUR.string)
@@ -109,22 +114,20 @@ class MainWindow:
         self._generate_windows()
 
     def _generate_photo_window(self):
-        self._windows["photos"] = PhotoWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT))
+        self._windows["photos"] = PhotoWindow(ttk.Frame(master=self._root, width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT))
         self._windows["photos"].place(x=0, y=0, anchor="nw")
 
     def _generate_windows(self):
         """Generate all the potential windows"""
         # Whether to generate the initial setup page
-        if not os.path.exists(os.path.join(FILES_LOCATION, DATABASE_NAME)):
-            #ttk.Style().configure("Test.TFrame", background="green")
-            self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), self._close_entrypoint)
-            #self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="Test.TFrame"), self._close_entrypoint)
-            self._windows["entrypoint"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+        if not os.path.exists(os.path.join(params.FILES_LOCATION, params.DATABASE_NAME)):
+            self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT), self._close_entrypoint)
+            self._windows["entrypoint"].place(x=0, y=0, anchor="nw", width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT)
         else:
             database_major, database_minor = db.get_database_version()
             if database_major != db.DATABASE_VERSION_MAJOR or database_minor != db.DATABASE_VERSION_MINOR:
-                self._windows["upgrade_version"] = VersionWindow(ttk.Frame(master=self._root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT), database_major, database_minor, self._close_upgrade_window)
-                self._windows["upgrade_version"].place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+                self._windows["upgrade_version"] = VersionWindow(ttk.Frame(master=self._root, width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT), database_major, database_minor, self._close_upgrade_window)
+                self._windows["upgrade_version"].place(x=0, y=0, anchor="nw", width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT)
             else:
                 self._generate_photo_window()
 
@@ -133,20 +136,13 @@ class MainWindow:
             logging.error("Tried to close entrypoint window when it didn't exist")
             return
 
-        # Generate persistent database
-        os.makedirs(FILES_LOCATION, exist_ok=True)
+        # Generate photos directory
         try:
-            os.mkdir(os.path.join(FILES_LOCATION, PHOTOS_LOCATION))
+            os.mkdir(os.path.join(params.FILES_LOCATION, params.PHOTOS_LOCATION))
         except FileExistsError:
             pass
-        db.PersistentBase.metadata.create_all(db.PERSISTENT_ENGINE)
-        db.SharedBase.metadata.create_all(db.PERSISTENT_ENGINE)
-        with db.PERSISTENT_SESSION() as session:
-            # TODO: Add defaults to ORM?
-            session.add(db.DatabaseVersion())
-            session.add(db.CurrentDisplay(all_photos=False, album=None))
-            session.add(db.Settings())
-            session.commit()
+        # Generate persistent database
+        create_database_file()
 
         self._generate_photo_window()
         self._windows["entrypoint"].place_forget()
