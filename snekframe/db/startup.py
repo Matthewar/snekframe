@@ -3,6 +3,7 @@
 import os
 
 from . import _base as db, SettingsV0
+from .runtime import RuntimeBase
 from .version import DatabaseVersion
 from .. import params
 
@@ -17,3 +18,7 @@ def create_database_file():
         session.add(DatabaseVersion())
         session.add(SettingsV0())
         session.commit()
+
+def intialise_runtimes():
+    """Setup runtime database"""
+    RuntimeBase.metadata.create_all(db.RUNTIME_ENGINE)

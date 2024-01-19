@@ -20,11 +20,18 @@ class ExistingFiles(RuntimeBase):
     found: Mapped[bool]
 
 class NumPhotos(RuntimeBase):
-    """Number of existing photos"""
+    """Number of existing photos in each directory"""
     __tablename__ = "numphotos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     num_photos: Mapped[int]
     num_albums: Mapped[int]
-    directory: Mapped[str] = mapped_column(String(params.MAX_FILENAME_SIZE)) # Directory name
+    directory: Mapped[Optional[str]] = mapped_column(String(params.MAX_FILENAME_SIZE)) # Directory name
     prefix_path: Mapped[Optional[str]] = mapped_column(String(params.MAX_PATH_SIZE)) # Path to directory
+
+class PhotoOrder(RuntimeBase):
+    """Ordering of photos"""
+    __tablename__ = "viewing_photos"
+
+    id : Mapped[int] = mapped_column(primary_key=True)
+    photo_id : Mapped[int]

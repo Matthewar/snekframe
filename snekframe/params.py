@@ -14,6 +14,8 @@ MAX_FILENAME_SIZE = 256
 
 TITLE_BAR_HEIGHT = 75
 
+NUM_ITEMS_PER_GALLERY_PAGE = 9
+
 GIT_URL = "https://github.com"
 ORGANISATION = "matthewar"
 REPO_NAME = "snekframe"
