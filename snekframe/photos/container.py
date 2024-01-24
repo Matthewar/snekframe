@@ -1,10 +1,11 @@
 """Container for photo database modification and reading"""
 
-from enum import Enum, auto
+from __future__ import annotations
+from enum import Enum
 import logging
 import os.path
 import pathlib
-from typing import Optional
+from typing import Optional, Any
 
 from sqlalchemy.sql.expression import select, delete, update, func, and_, or_, not_
 
@@ -13,11 +14,88 @@ from ..db import RUNTIME_SESSION, PERSISTENT_SESSION, PhotoListV1
 from ..db.runtime import ExistingFiles, NumPhotos, PhotoOrder
 from .. import params
 
+class PageDirection(Enum):
+    Up = auto()
+    Into = auto()
+    Previous = auto()
+    Next = auto()
+
+@dataclass
+class GoToPage:
+    direction : PageDirection
+    into_index : Optional[int]
+
+@dataclass
+class SelectItem:
+    index : Optional[int] # None = select all
+
+@dataclass
+class CommitChanges:
+    pass
+
+class ItemType(Enum):
+    Name = auto()
+    Selection = auto()
+    Image = auto()
+
+@dataclass
+class ReturnData:
+    page_iteration : int
+    item_index : int
+    item_data : Any
+    last_item : bool
+
+class _FileSystemExplorer:
+    def __init__(self):
+        self._request_queue = queue.Queue()
+        self._return_data_queue = queue.Queue()
+        self._page_iteration = 0
+
+    #def open_page(self, 
+    #def set_selection
+    #def get_page
+
+    def explorer_thread(self):
+        self._current_page = None
+        self._reading_page = None
+        self._item_index = 0
+
+        while True:
+            try:
+                item = self._request_queue.get_nowait()
+            except queue.Empty:
+                # Can do a get operation
+            else:
+                # Either something needs updating or switching page
+                if item.priority = Priorities.GetPage.value:
+                    self._reading_page = 
+                self._database_queue.task_done()
+
+            if item.priority == Priorities.GetPage()
+
+            #if current_page_iteration is None:
+            #    item.page_iteration = current_page_iteration
+
+            #if isistance
+
+
+class PhotoDirectorySelection(Enum):
+    Not = 0
+    Partial = 1
+    All = 2
+
 class PhotoInfo:
     """File Info"""
-    def __init__(self, path : str, filename : str):
+    def __init__(self, path : str, filename : str, parent : CurrentDirectoryInfo, selection : Optional[bool] = None, modified : bool =True):
         self._path = path
         self._filename = filename
+        self._directory_info = parent
+
+        self._selection = selection
+        if selection is not None:
+            self._modified = modified
+        else:
+            self._modified = False
 
     def _get_where_clause(self):
         return and_(PhotoListV1.path == self._path, PhotoListV1.filename == self._filename)
@@ -25,37 +103,31 @@ class PhotoInfo:
     @property
     def selected(self):
         """Whether the file is selected"""
-        query = select(PhotoListV1.selected).where(self._get_where_clause())
-        with RUNTIME_SESSION() as runtime_session:
-            selection = runtime_session.scalars(query).one_or_none()
-
-            if selection is not None:
-                return selection
-        with PERSISTENT_SESSION() as persistent_session:
-            return persistent_session.scalars(query).first()
+        if self._selection is None:
+            query = select(PhotoListV1.selected).where(self._get_where_clause())
+            with PERSISTENT_SESSION() as persistent_session:
+                self._selection = persistent_session.scalars(query).first()
+            self._modified = False
+        return self._selection
 
     @selected.setter
     def selected(self, selection : bool):
-        with RUNTIME_SESSION() as runtime_session:
-            found = runtime_session.scalars(
-                update(PhotoListV1).where(self._get_where_clause()).value(selected=selection).returning(PhotoListV1.id)
-            ).one_or_none()
+        self._selection = selection
+        self._modified = True
 
-            if found is not None:
-                runtime_session.commit()
-                return
+    def commit_change(self):
+        if not self._modified:
+            return
 
-            with PERSISTENT_SESSION() as persistent_session:
-                row = persistent_session.scalars(
-                    select(PhotoListV1).where(self._get_where_clause())
-                ).first()
-
-                runtime_session.merge(row)
-                runtime_session.commit()
+        with PERSISTENT_SESSION() as session:
+            session.execute(
+                update(PhotoListV1).where(self._get_where_clause()).value(selected=self._selection)
+            )
+            session.commit()
 
 class CurrentDirectoryInfo:
     """Directory Info"""
-    def __init__(self, prefix_path : Optional[str], directory : Optional[str], num_photos=None, num_albums=None, num_items_per_page=params.NUM_ITEMS_PER_GALLERY_PAGE):
+    def __init__(self, prefix_path : Optional[str], directory : Optional[str], parent=None, num_photos=None, num_albums=None, num_items_per_page=params.NUM_ITEMS_PER_GALLERY_PAGE):
         self._path = prefix_path
         self._name = directory
         if prefix_path is None:
@@ -67,6 +139,10 @@ class CurrentDirectoryInfo:
             raise TypeError()
         else:
             self._full_path = os.path.join(prefix_path, directory)
+
+        if parent is None and not (prefix_path is None and directory is None):
+            raise TypeError()
+        self._parent = parent
 
         self._num_photos = num_photos
         self._num_albums = num_albums
@@ -101,7 +177,7 @@ class CurrentDirectoryInfo:
                         page_number += 1
                     self._pages[page_number].append(
                         self.__class__(
-                            self._full_path, row.directory, num_photos=row.num_photos, num_albums=row.num_albums
+                            self._full_path, row.directory, parent=self._parent, num_photos=row.num_photos, num_albums=row.num_albums
                         )
                     )
         if self._num_photos != 0:
@@ -120,13 +196,8 @@ class CurrentDirectoryInfo:
                         PhotoInfo(row.path, row.filename)
                     )
 
-    class DirectorySelection(Enum):
-        Not = auto()
-        Partial = auto()
-        All = auto()
-
     @property
-    def selected(self):
+    def selected(self): # TODO: Go into directories
         """Whether the entire directory is selected"""
         with PERSISTENT_SESSION() as persistent_session, RUNTIME_SESSION() as runtime_session:
             none_selected = True
@@ -161,7 +232,7 @@ class CurrentDirectoryInfo:
             return self.DirectorySelection.Partial
 
     @selected.setter
-    def selected(self, selection):
+    def selected(self, selection): # Wrong?
         if not isinstance(selection, self.DirectorySelection):
             raise TypeError()
         if selection == self.DirectorySelection.Partial:
@@ -195,6 +266,12 @@ class CurrentDirectoryInfo:
             self._load_pages()
 
         return self._pages[page_number]
+
+def commit_photo_selections(self):
+    """Commit changes made to photo selections (update persistent database)"""
+def rollback_photo_selections(self):
+    """Remove changes made to photo selections (delete runtime change database)"""
+    #with
 
 class PhotoContainer:
     """Runtime access to photos and selection"""
@@ -232,14 +309,24 @@ class PhotoContainer:
                 num_photos = 0
                 num_albums = 0
 
+                directory_selected = None
+
                 for path in PHOTOS_PATH.joinpath(directory_relative_path).iterdir():
                     relative_path = path.relative_to(PHOTOS_PATH)
                     if path.is_dir():
                         logging.debug("Found directory '%s' in '%s'", path.name, relative_path)
-                        found_photos = scan_directory(relative_path)
+                        found_photos, internal_directory_selected = scan_directory(relative_path)
                         if found_photos:
                             num_albums += 1
                             self._total_num_albums += 1
+
+                            if directory_selected is None:
+                                directory_selected = internal_directory_selected
+                            elif internal_directory_selected == PhotoDirectorySelection.Partial:
+                                directory_selected = internal_directory_selected
+                            elif internal_directory_selected != directory_selected:
+                                # If one selection is all and one is none
+                                directory_selected = PhotoDirectorySelection.Partial
                     elif path.is_file():
                         if is_file_image(path):
                             num_photos += 1
@@ -250,8 +337,28 @@ class PhotoContainer:
                             if found_image is None:
                                 persistent_session.add(PhotoListV1(filename=path.name, path=relative_path.parent))
                                 logging.info("Found new image '%s' in '%s'", path.name, relative_path)
+                                photo_selected = False
                             else:
                                 logging.info("Rediscovered image '%s' in '%s'", path.name, relative_path)
+                                photo_selected = persistent_session.scalars(
+                                    select(PhotoListV1.selected).where(
+                                        and_(
+                                            PhotoListV1.path == str(relative_path.parent),
+                                            PhotoListV1.filename == str(relative_path.name)
+                                        )
+                                    )
+                                ).one()
+
+                            if directory_selected is None:
+                                if photo_selected:
+                                    directory_selected = PhotoDirectorySelection.All
+                                else:
+                                    directory_selected = PhotoDirectorySelection.Not
+                            elif directory_selected != PhotoDirectorySelection.Partial:
+                                if directory_selected == PhotoDirectorySelection.All and not photo_selected:
+                                    directory_selected = PhotoDirectorySelection.Partial
+                                elif directory_selected == PhotoDirectorySelection.Not and photo_selected:
+                                    directory_selected = PhotoDirectorySelection.Partial
                         else:
                             logging.error("Found unknown file '%s' in '%s'", path.name, relative_path)
 
@@ -262,9 +369,9 @@ class PhotoContainer:
                     else:
                         prefix_path = directory.parent if directory.parent != pathlib.Path(".") else None
                         directory_name = directory.name
-                    runtime_session.add(NumPhotos(num_photos=num_photos, num_albums=num_albums, directory=directory_name, prefix_path=prefix_path))
-                    return True
-                return False
+                    runtime_session.add(NumPhotos(num_photos=num_photos, num_albums=num_albums, directory=directory_name, prefix_path=prefix_path, selected=directory_selected.value))
+                    return True, directory_selected
+                return False, None
 
             self._total_num_photos = 0
             self._total_num_albums = 0

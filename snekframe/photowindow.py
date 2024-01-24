@@ -79,15 +79,9 @@ class VoltageWarningWindow(elements.LimitedFrameBaseElement):
         info_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
 class PhotoTitleBar:
-    """Titlebar"""
+    """Titlebar for system"""
 
-    #class Mode(Enum):
-    #    Settings = auto()
-    #    PhotosVisible = auto() # Rename to gallery?
-    #    PhotosHidden = auto()
-    #    Selection = auto()
-
-    def __init__(self, parent, open_selection, open_settings, open_voltage_warning):
+    def __init__(self, parent, photo_selection, open_slideshow, open_gallery, open_settings, open_voltage_warning):
         self._frame = ttk.Frame(master=parent, style="TitleBar.TFrame")
 
         self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
@@ -111,12 +105,21 @@ class PhotoTitleBar:
 
         column += 1
 
-        def callback_open_selection():
-            open_selection()
-            self._title.text = "Select Photos"
+        def callback_open_gallery():
+            open_gallery()
+            self._title.text = "Gallery"
 
-        self._select_button = self._title_menu_buttons.add_button(title_menu, callback_open_selection, icon_name="slideshow", selected=False)
-        self._select_button.grid(row=0, column=column, padx=5)
+        self._gallery_button = self._title_menu_buttons.add_button(title_menu, callback_open_gallery, icon_name="photo_library", selected=False)
+        self._gallery_button.grid(row=0, column=column, padx=5)
+
+        column += 1
+
+        def callback_open_slideshow():
+            open_slideshow()
+            self._title.text = "Slideshow" # TODO: Change to selected photo name
+
+        self._slideshow_button = self._title_menu_buttons.add_button(title_menu, callback_open_slideshow, icon_name="slideshow", selected=False, enabled=photo_selection.photos_selected)
+        self._slideshow_button.grid(row=0, column=column, padx=5)
 
         column += 1
 
@@ -166,15 +169,122 @@ class PhotoTitleBar:
         """
         self._settings_button.invoke()
 
-    def invoke_selection_button(self):
-        """Invoke the photo selection button
+    def invoke_gallery_button(self):
+        """Invoke the photo gallery button
 
-        This will trigger updating this class for selection along with the selection callback triggers
+        This will trigger updating this class for gallery along with the gallery callback triggers
         """
-        self._select_button.invoke()
+        self._gallery_button.invoke()
 
-class PhotoSelectionWindow:
-    """Allows user to select which photos to display"""
+class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
+    """Displays all photos available
+
+    Allows user to select which photos to display
+    """
+    def __init__(self, parent : ttk.Frame, photo_container : PhotoContainer): # TODO should pass width
+        super().__init__(parent, {})
+
+        self._title_bar = GalleryTitleBar(
+            self._frame, self._goto_previous_page, self._goto_up_page, self._goto_next_page,
+            self._photo_container, self._start_selection_mode, self._end_selection_mode
+        )
+        self._title_bar.place(x=0, y=0, width=WINDOW_WIDTH, height=TITLE_BAR_HEIGHT, anchor="nw")
+
+        self._page_number = []
+        self._page_name = []
+        self._current_window = None
+        self._second_window = None # For loading data
+        self._directory_info = []
+
+        if self._photo_container.num_photos == 0:
+            self._current_window = NoPhotosPage(self._frame)
+        else:
+            self._page_number.append(0)
+            self._page_name.append('/')
+            self._directory_info.append(CurrentDirectoryInfo(None, None))
+            self._current_window = self._generate_new_page()
+            self._current_window.setup_page(self._directory_info[-1].get_page(self._page_number[-1]))
+
+            self._title_bar.text = os.path.join(*self._page_name)
+            self._title_bar.set_button_enables(back=False, up=False, forward=self._page_number < (self._directory_info[-1].num_pages - 1))
+        self._current_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+
+    def _generate_new_page(self):
+        return PhotoGalleryPage(self._frame, self._open_item, self._select_item, self._unselect_item)
+
+    def _goto_previous_page(self):
+        if self._page_number[-1] > 0:
+            self._title_bar.set_button_enables(back=self._page_number[-1] > 1, forward=True)
+
+            if self._second_window is not None:
+                self._second_window = _generate_new_page()
+
+            self._page_number[-1] -= 1
+            self._second_window.setup_page(self._directory_info[-1].get_page(self._page_number[-1]))
+            self._second_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+            self._current_window.place_forget()
+
+            self._current_window, self._second_window = self._second_window, self._current_window
+
+    def _goto_next_page(self):
+        if self._page_number[-1] < (self._directory_info[-1].num_pages - 1):
+            self._title_bar.set_button_enables(back=True, forward=self._page_number[-1] < (self._directory_info[-1].num_pages - 2))
+
+            if self._second_window is not None:
+                self._second_window = _generate_new_page()
+
+            self._page_number[-1] += 1
+            self._second_window.setup_page(self._directory_info[-1].get_page(self._page_number[-1]))
+            self._second_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+            self._current_window.place_forget()
+
+            self._current_window, self._second_window = self._second_window, self._current_window
+
+    def _goto_up_page(self):
+        if len(self._directory_info) <= 1:
+            return
+
+        self._directory_info.pop()
+        self._page_number.pop()
+        self._page_name.pop()
+
+        self._title_bar.text = os.path.join(*self._page_name)
+
+        self._title_bar.set_button_enabled(back=self._page_number[-1] > 1, forward=self._page_number[-1] < (self._directory_info[-1].num_pages - 1), up=len(self._directory_info) > 1)
+
+        if self._second_window is not None:
+            self._second_window = _generate_new_page()
+
+        self._second_window.setup_page(self._directory_info[-1].get_page(self._page_number[-1]))
+        self._second_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+        self._current_window.place_forget()
+
+        self._current_window, self._second_window = self._second_window, self._current_window
+
+    @property
+    def _all_photos_selected(self):
+        return self._directory_info[0].selected
+
+    def _start_selection_mode(self):
+        self._current_window.start_selection_mode(self._all_photos_selected) # TODO: Always show selection, add disable
+
+    def _end_selection_mode(self, save=False):
+        self._current_window.end_selection_mode()
+        if save:
+            commit_photo_selections()
+        else:
+            rollback_photo_selections()
+
+    def _open_item(self, index)
+    def _select_item(self, index)
+    def _unselect_item(self, index):
+        if 
+
+
+
+
+###############################################
+
     def __init__(self, frame, select_album_callback):
         self._main_window = frame
         self._inner_window = None
@@ -206,25 +316,7 @@ class PhotoSelectionWindow:
 
             num_albums = len(albums)
 
-        if num_albums == 0:
-            self._inner_window = ttk.Frame(self._main_window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
-            main_label = ttk.Label(self._inner_window, text="No Photos Available", font=FONTS.title)
-            subtitle_label = ttk.Label(self._inner_window, text="Go to settings to scan for photos", font=FONTS.subtitle)
-
-            elements = (main_label, subtitle_label)
-
-            # TODO: Function for this?
-
-            for row, element in enumerate(elements, start=1):
-                element.grid(row=row, column=1)
-
-            self._inner_window.grid_columnconfigure(0, weight=1)
-            self._inner_window.grid_columnconfigure(2, weight=1)
-            self._inner_window.grid_rowconfigure(0, weight=1)
-            self._inner_window.grid_rowconfigure(len(elements) + 1, weight=1)
-
-            self._inner_window.place(x=0, y=0, anchor="nw", width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
-        else:
+        if num_albums != 0:
             num_rows = num_albums // 3 + 1
             inner_window_height = (self.BUTTON_HEIGHT + self.BUTTON_VERTICAL_PADDING * 2) * (num_rows + 1)
             self._inner_window = ttk.Frame(self._main_window, width=WINDOW_WIDTH, height=inner_window_height)
@@ -659,7 +751,7 @@ class PhotoWindow:
             return "SelectedPhotos(no_photos_selected)"
 
     class OpenWindow(Enum):
-        Select = auto()
+        Gallery = auto()
         Display = auto()
         Settings = auto()
         LowVoltageWarning = auto()
@@ -689,8 +781,8 @@ class PhotoWindow:
                 if not found_photos:
                     self._selection.set_no_selection()
 
-        self._title_bar = PhotoTitleBar(self._window, self._open_photo_select_window, self._open_settings, self._open_voltage_warning)
-        self._selection_window = None
+        self._title_bar = PhotoTitleBar(self._window, self._selection, self._open_slideshow_window, self._open_photo_gallery, self._open_settings, self._open_voltage_warning)
+        self._gallery_window = None
         self._display_window = None
         self._settings_window = None
         self._voltage_warning_window = None
@@ -698,9 +790,9 @@ class PhotoWindow:
         self._current_window = None
 
         if not self._selection.photos_selected:
-            self._title_bar.invoke_selection_button()
+            self._title_bar.invoke_gallery_button()
         else:
-            self._open_photo_display_window()
+            self._open_slideshow_window()
 
     def place(self, **place_kwargs):
         self._window.place(**place_kwargs)
@@ -708,9 +800,9 @@ class PhotoWindow:
     def _close_current_window(self):
         if self._current_window is None:
             return # Skip, should only occur on startup
-        if self._current_window == self.OpenWindow.Select:
-            assert self._selection_window is not None
-            self._selection_window.place_forget()
+        if self._current_window == self.OpenWindow.Gallery:
+            assert self._gallery_window is not None
+            self._gallery_window.place_forget()
         elif self._current_window == self.OpenWindow.Display:
             assert self._display_window is not None
             self._display_window.place_forget()
@@ -725,17 +817,17 @@ class PhotoWindow:
 
         self._current_window = None
 
-    def _open_photo_select_window(self):
+    def _open_photo_gallery(self):
         if not self._title_bar.visible:
             self._title_bar.place()
         self._close_current_window()
 
-        if self._selection_window is None:
-            self._selection_window = PhotoSelectionWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._callback_open_photo_display_window)
-        self._selection_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
-        self._current_window = self.OpenWindow.Select
+        if self._gallery_window is None:
+            self._gallery_window = PhotoGalleryWindow(ttk.Frame(master=self._window, width=WINDOW_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT), self._callback_open_slideshow_window)
+        self._gallery_window.place(x=0, y=TITLE_BAR_HEIGHT, anchor="nw")
+        self._current_window = self.OpenWindow.Gallery
 
-    def _callback_open_photo_display_window(self, album=None, all_photos=False):
+    def _callback_open_slideshow_window(self, album=None, all_photos=False):
         new_selection = self.SelectedPhotos(album=album, all_photos=all_photos)
 
         if new_selection != self._selection:
@@ -744,7 +836,7 @@ class PhotoWindow:
             regenerate = True
         else:
             regenerate = False
-        return self._open_photo_display_window(regenerate=regenerate)
+        return self._open_slideshow_window(regenerate=regenerate)
 
     def _setup_viewed_photos(self):
         if self._selection.album_selected:
@@ -754,7 +846,7 @@ class PhotoWindow:
 
         return setup_viewed_photos(shuffle=self._settings.shuffle_photos, album=album)
 
-    def _open_photo_display_window(self, regenerate=False):
+    def _open_slideshow_window(self, regenerate=False):
         # TODO: Regenerate if settings change (rescan done)
         if self._title_bar.visible:
             self._title_bar.place_forget()
@@ -778,10 +870,10 @@ class PhotoWindow:
             self._display_window.place_forget()
             del self._display_window
             self._display_window = None
-        if self._selection_window is not None and selection_window:
-            self._selection_window.place_forget()
-            del self._selection_window
-            self._selection_window = None
+        if self._gallery_window is not None and selection_window:
+            self._gallery_window.place_forget()
+            del self._gallery_window
+            self._gallery_window = None
 
     def _open_settings(self):
         if not self._title_bar.visible:
