@@ -19,6 +19,6 @@ def create_database_file():
         session.add(SettingsV0())
         session.commit()
 
-def intialise_runtimes():
+def initialise_runtimes():
     """Setup runtime database"""
     RuntimeBase.metadata.create_all(db.RUNTIME_ENGINE)

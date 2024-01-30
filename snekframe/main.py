@@ -11,7 +11,7 @@ from tkinter import ttk
 from . import db, styles, params
 from .fonts import FONTS
 from .styles import STYLES
-from .photowindow import PhotoWindow
+from .photos.main import PhotoWindow
 
 class EntryWindow:
     """Startup settings"""
@@ -86,7 +86,7 @@ class VersionWindow:
             elements.append(ttk.Button(master=self._window, text="Continue (without upgrading)", command=exit_window_callback))
 
     def _trigger_upgrade(self):
-        upgrade_database()
+        db.upgrade.upgrade_database()
         self._exit_window_callback()
 
     def place(self, **place_args):
@@ -124,8 +124,8 @@ class MainWindow:
             self._windows["entrypoint"] = EntryWindow(ttk.Frame(master=self._root, width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT), self._close_entrypoint)
             self._windows["entrypoint"].place(x=0, y=0, anchor="nw", width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT)
         else:
-            database_major, database_minor = db.get_database_version()
-            if database_major != db.DATABASE_VERSION_MAJOR or database_minor != db.DATABASE_VERSION_MINOR:
+            database_major, database_minor = db.version.get_database_version()
+            if database_major != db.version.DATABASE_VERSION_MAJOR or database_minor != db.version.DATABASE_VERSION_MINOR:
                 self._windows["upgrade_version"] = VersionWindow(ttk.Frame(master=self._root, width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT), database_major, database_minor, self._close_upgrade_window)
                 self._windows["upgrade_version"].place(x=0, y=0, anchor="nw", width=params.WINDOW_WIDTH, height=params.WINDOW_HEIGHT)
             else:
@@ -142,7 +142,7 @@ class MainWindow:
         except FileExistsError:
             pass
         # Generate persistent database
-        create_database_file()
+        db.startup.create_database_file()
 
         self._generate_photo_window()
         self._windows["entrypoint"].place_forget()

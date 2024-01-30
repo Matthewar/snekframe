@@ -11,26 +11,24 @@ import os
 import threading
 from enum import Enum, auto
 
-from .analyse import load_photo_files, setup_viewed_photos
-from .db import Settings, PhotoList, RUNTIME_SESSION, PERSISTENT_SESSION, RUNTIME_ENGINE, NumPhotos, get_database_version
+from .db import SettingsV0, PERSISTENT_SESSION
+from .db.version import get_database_version
 from .fonts import FONTS
 from . import params
-from . import icons
 from . import elements
 from .params import WINDOW_WIDTH, WINDOW_HEIGHT, TITLE_BAR_HEIGHT
-from . import styles
 
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
 
-from sqlalchemy.sql.expression import func, select, update, delete
+from sqlalchemy.sql.expression import select, update
 
 class SettingsContainer:
     """Runtime Accessible Settings"""
     def __init__(self):
         with PERSISTENT_SESSION() as session:
             result = session.scalars(
-                select(Settings).limit(1)
+                select(SettingsV0).limit(1)
             ).one_or_none()
 
         if result is None:
@@ -44,7 +42,7 @@ class SettingsContainer:
     def _update_settings(self, **update_kwargs):
         with PERSISTENT_SESSION() as session:
             session.execute(
-                update(Settings).values(**update_kwargs)
+                update(SettingsV0).values(**update_kwargs)
             )
             session.commit()
 
@@ -242,11 +240,11 @@ class PhotoTransitionSettings(elements.LimitedFrameBaseElement):
         return ", ".join(info)
 
 class PhotoSettings(elements.LimitedFrameBaseElement):
-    def __init__(self, parent, settings_container, photo_selection, destroy_photo_window):
+    def __init__(self, parent, settings_container, photos_container, destroy_photo_window):
         super().__init__(parent, {})
 
         self._settings_container = settings_container
-        self._photo_selection = photo_selection
+        self._photos_container = photos_container
         self._destroy_photo_window = destroy_photo_window
 
         row = 1
@@ -256,7 +254,10 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         shuffle_photos_label = ttk.Label(self._frame, text="Shuffle:", justify=tk.LEFT, font=FONTS.default)
         shuffle_photos_label.grid(row=row, column=LEFTCOLUMN, padx=(25, 0), pady=5, sticky="ew")
 
-        shuffle_photos_settings = PhotoShuffleSettings(self._frame, settings_container, self._reorder_photos, destroy_photo_window)
+        def _reorder_photos(self):
+            self._photos_container.reorder(self._settings_container.shuffle_photos)
+
+        shuffle_photos_settings = PhotoShuffleSettings(self._frame, settings_container, _reorder_photos, destroy_photo_window)
         shuffle_photos_settings.grid(row=row, column=RIGHTCOLUMN, padx=25, pady=5, sticky="snew")
 
         row += 1
@@ -299,44 +300,15 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
         self._frame.grid_rowconfigure(0, weight=1)
         self._frame.grid_rowconfigure(row, weight=1)
 
-    def _reorder_photos(self):
-        """Reorder existing list of photos
-
-        According to shuffle setting and photo selection
-        Returns whether any photos are available
-        """
-        if self._photo_selection.album_selected:
-            album = self._photo_selection.album
-        elif self._photo_selection.all_photos_selected:
-            album = None
-        else:
-            # No photos selected
-            return False
-
-        return setup_viewed_photos(shuffle=self._settings_container.shuffle_photos, album=album)
-
     def _update_num_photo_labels(self):
         """Update the labels with number of photos"""
-        with RUNTIME_SESSION() as session:
-            result = session.scalars(
-                select(NumPhotos).limit(1)
-            ).one_or_none()
-
-            if result is None:
-                # TODO: Log error
-                self._num_photos_label.text = "Error!"
-                self._num_albums_label.text = "Error!"
-            else:
-                self._num_photos_label.text = str(result.num_photos)
-                self._num_albums_label.text = str(result.num_albums)
+        self._num_photos_label.text = str(self._photos_container.num_photos)
+        self._num_albums_label.text = str(self._photos_container.num_directories)
 
     def _trigger_rescan(self):
         """Rescan directory for photos"""
         # TODO: Add threading? Need to block moving off this screen if so
-        load_photo_files()
-        found_photos = self._reorder_photos()
-        if not found_photos:
-            self._photo_selection.set_no_selection()
+        self._photos_container.rescan(self._settings_container.shuffle_photos)
         self._destroy_photo_window()
         self._update_num_photo_labels()
 
@@ -707,18 +679,18 @@ class SettingsWindow:
 
     _MENU_WIDTH = 300
 
-    def __init__(self, parent, selection, settings, destroy_photo_window): # TODO: Previous screen if possible
+    def __init__(self, parent, photos_container, settings, destroy_photo_window): # TODO: Previous screen if possible
         self._main_window = ttk.Frame(master=parent)
 
         self._menu = SettingsMenu(self._main_window, self._open_photo_settings, self._open_system_settings, self._open_display_settings)
         self._menu.place(x=0, y=0, anchor="nw", height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT, width=self._MENU_WIDTH)
         self._current_window = None
 
-        self._photo_selection = selection
+        self._photos_container = photos_container
         self._settings_container = settings
         self._destroy_photo_window = destroy_photo_window
 
-        self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
+        self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photos_container, self._destroy_photo_window)
         self._system_window = SystemSettings(self._main_window)
         self._display_window = DisplaySettings(self._main_window)
 
@@ -740,7 +712,7 @@ class SettingsWindow:
         self._close_current_window()
 
         if self._photo_window is None: # TODO: Is there any reason to not have this built, how much memory
-            self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photo_selection, self._destroy_photo_window)
+            self._photo_window = PhotoSettings(self._main_window, self._settings_container, self._photos_container, self._destroy_photo_window)
         self._photo_window.place(x=self._MENU_WIDTH, y=0, anchor="nw", width=WINDOW_WIDTH-self._MENU_WIDTH, height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT)
         self._current_window = self.OpenWindow.Photo
 
