@@ -3,8 +3,8 @@
 
 from typing import Optional
 
-from sqlachemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlachemy.types import String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.types import String
 
 from .. import params
 
@@ -35,6 +35,7 @@ class NumPhotos(RuntimeBase):
     num_albums: Mapped[int]
     directory: Mapped[Optional[str]] = mapped_column(String(params.MAX_FILENAME_SIZE)) # Directory name
     prefix_path: Mapped[Optional[str]] = mapped_column(String(params.MAX_PATH_SIZE)) # Path to directory
+    selected: Mapped[int]
 
 class PhotoOrder(RuntimeBase):
     """Ordering of photos"""
