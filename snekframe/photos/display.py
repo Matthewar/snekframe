@@ -34,7 +34,7 @@ def _resize_image(image, max_width=WINDOW_WIDTH, max_height=WINDOW_HEIGHT):
     return image.resize((int(size_x), int(size_y)), PIL_Image.LANCZOS)
 
 @dataclass
-class __ImageIdPair:
+class _ImageIdPair:
     ordering_id : int
     photo_id : int
 
@@ -108,7 +108,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         with RUNTIME_SESSION() as session:
             # For now just looking forwards?
             for row in session.scalars(select(PhotoOrder).limit(4)):
-                self._image_ids.append(__ImageIdPair(ordering_id=row.id, photo_id=row.photo_id))
+                self._image_ids.append(_ImageIdPair(ordering_id=row.id, photo_id=row.photo_id))
         if len(self._image_ids) == 2:
             self._image_ids.extend([self._image_ids[1]]*2 + [None])
         elif len(self._image_ids) == 3:
@@ -147,7 +147,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
 
         self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
 
-    def _get_photo_paths(self, *ids : __ImageIdPair):
+    def _get_photo_paths(self, *ids : _ImageIdPair):
         results = []
         with PERSISTENT_SESSION() as session:
             for id_set in ids:
@@ -215,9 +215,9 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         with RUNTIME_SESSION() as session:
             forward_images = session.scalars(forward_query).all()
             next_image = forward_images[0]
-            self._image_ids.append(__ImageIdPair(ordering_id=next_image.id, photo_id=next_image.photo_id))
+            self._image_ids.append(_ImageIdPair(ordering_id=next_image.id, photo_id=next_image.photo_id))
             if len(forward_images) > 1:
-                self._image_ids.append(__ImageIdPair(ordering_id=forward_images[1].id, photo_id=forward_images[1].photo_id))
+                self._image_ids.append(_ImageIdPair(ordering_id=forward_images[1].id, photo_id=forward_images[1].photo_id))
             else:
                 self._image_ids.append(None)
 
@@ -232,9 +232,9 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         with RUNTIME_SESSION() as session:
             reverse_images = session.scalars(reverse_query).all()
             prev_image = reverse_images[0]
-            self._image_ids.appendleft(__ImageIdPair(ordering_id=prev_image.id, photo_id=prev_image.photo_id))
+            self._image_ids.appendleft(_ImageIdPair(ordering_id=prev_image.id, photo_id=prev_image.photo_id))
             if len(reverse_images) > 1:
-                self._image_ids.appendleft(__ImageIdPair(ordering_id=reverse_images[1].id, photo_id=reverse_images[1].photo_id))
+                self._image_ids.appendleft(_ImageIdPair(ordering_id=reverse_images[1].id, photo_id=reverse_images[1].photo_id))
             else:
                 self._image_ids.appendleft(None)
 
