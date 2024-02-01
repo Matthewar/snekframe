@@ -19,13 +19,6 @@ class ExistingFiles(RuntimeBase):
     photo_path: Mapped[str] = mapped_column(String(params.MAX_PATH_SIZE))
     found: Mapped[bool]
 
-class PhotoOrder(RuntimeBase):
-    """Ordering of photos"""
-    __tablename__ = "viewing_photos"
-
-    id : Mapped[int] = mapped_column(primary_key=True)
-    photo_id : Mapped[int]
-
 class NumPhotos(RuntimeBase):
     """Number of existing photos in each directory"""
     __tablename__ = "numphotos"
