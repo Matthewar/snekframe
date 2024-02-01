@@ -20,6 +20,19 @@ from ..db import RUNTIME_SESSION, PERSISTENT_SESSION, PhotoListV1
 from ..db.runtime import PhotoOrder
 from ..params import WINDOW_HEIGHT, WINDOW_WIDTH, FILES_LOCATION, PHOTOS_LOCATION
 
+def _get_resized_image_dimensions(image, max_width=WINDOW_WIDTH, max_height=WINDOW_HEIGHT):
+    scale_x = max_width / image.width
+    scale_y = max_height / image.height
+
+    if scale_x < scale_y:
+        return image.width * scale_x, image.height * scale_y
+    return image.width * scale_y, image.height * scale_y
+
+def _resize_image(image, max_width=WINDOW_WIDTH, max_height=WINDOW_HEIGHT):
+    PIL_ImageOps.exif_transpose(image, in_place=True)
+    size_x, size_y = _get_resized_image_dimensions(image, max_width=max_width, max_height=max_height)
+    return image.resize((int(size_x), int(size_y)), PIL_Image.LANCZOS)
+
 @dataclass
 class __ImageIdPair:
     ordering_id : int
@@ -76,21 +89,6 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._title_showing = False
         super().place_forget()
 
-    @staticmethod
-    def _get_resized_image_dimensions(image):
-        scale_x = WINDOW_WIDTH / image.width
-        scale_y = WINDOW_HEIGHT / image.height
-
-        if scale_x < scale_y:
-            return image.width * scale_x, image.height * scale_y
-        return image.width * scale_y, image.height * scale_y
-
-    @classmethod
-    def _resize_image(cls, image):
-        PIL_ImageOps.exif_transpose(image, in_place=True)
-        x, y = cls._get_resized_image_dimensions(image)
-        return image.resize((int(x), int(y)), PIL_Image.LANCZOS)
-
     def regenerate_window(self):
         # Can just rearrange
         if self._photo is not None:
@@ -119,14 +117,14 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             self._image_ids.append(None)
 
         self._image_left = PIL_ImageTk.PhotoImage(
-            self._resize_image(
+            _resize_image(
                 PIL_Image.open(
                     self._get_photo_paths(self._image_ids[1].photo_id)[0]
                 )
             )
         )
         self._image_centre = PIL_ImageTk.PhotoImage(
-            self._resize_image(
+            _resize_image(
                 PIL_Image.open(
                     self._get_photo_paths(self._image_ids[2].photo_id)[0]
                 )
@@ -135,7 +133,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._photo.configure(image=self._image_centre)
         self._photo.image = self._image_centre
         self._image_right = PIL_ImageTk.PhotoImage(
-            self._resize_image(
+            _resize_image(
                 PIL_Image.open(
                     self._get_photo_paths(self._image_ids[3].photo_id)[0]
                 )
@@ -337,7 +335,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_right
 
         new_image_right_info = self._get_forward_image()
-        self._image_right = PIL_ImageTk.PhotoImage(self._resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
+        self._image_right = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
 
     def _switch_reverse_image(self):
         self._photo.configure(image=self._image_left)
@@ -347,7 +345,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_left
 
         new_image_left_info = self._get_reverse_image()
-        self._image_left = PIL_ImageTk.PhotoImage(self._resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
+        self._image_left = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
 
     def _transition_next_photo(self):
         current_time = datetime.datetime.now()
@@ -371,7 +369,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_right
 
         image_right_info = self._get_forward_image()
-        self._image_right = PIL_ImageTk.PhotoImage(self._resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
+        self._image_right = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
         self._last_transition_time = datetime.datetime.now()
 
         self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
