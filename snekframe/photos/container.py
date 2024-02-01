@@ -1,6 +1,6 @@
 """Container for photo database modification and reading"""
 
-#from __future__ import annotations
+from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 import logging
@@ -125,7 +125,7 @@ class DirectionsUpdate(ViewUpdate):
 
 @dataclass
 class FullImageViewUpdate(ViewUpdate):
-    image : tk.PhotoImage
+    image : PIL_ImageTk.PhotoImage
 
 class _FileSystemExplorer:
     def __init__(self):
@@ -282,14 +282,14 @@ class _FileSystemExplorer:
         Image = auto()
         SelectDirection = auto()
 
-    def _explorer_thread(self):
+    def _explorer_thread(self) -> None:
         directory_info : List[CurrentDirectoryInfo | PhotoInfo] = []
         page_number : List[int] = []
         current_page_id : Optional[int] = None
         next_pages : Optional[List[CurrentDirectoryInfo | PhotoInfo]] = None # Potential next pages
 
         current_display_index : int = 0
-        current_display_stage : List[self._PageDisplayStage] = []
+        current_display_stage : List[_FileSystemExplorer._PageDisplayStage] = []
 
         with RUNTIME_SESSION() as runtime_session, PERSISTENT_SESSION() as persistent_session:
             finished = False
@@ -492,7 +492,7 @@ class _FileSystemExplorer:
                             SelectViewUpdate(
                                 current_page_id=current_page_id,
                                 index=item.index,
-                                selection=item.select
+                                selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
                             )
                         )
                     elif isinstance(item, SelectAll):
@@ -570,6 +570,10 @@ class PhotoInfo:
             self._id = row_id
 
         self._selection = selection
+
+    @property
+    def name(self):
+        return self._filename
 
     @property
     def selected(self):
@@ -668,6 +672,10 @@ class CurrentDirectoryInfo:
                 self._pages[page_number].append(
                     PhotoInfo(row.path, row.filename, self, self._persistent_session, row.selected, row.id)
                 )
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def selected(self):
