@@ -72,20 +72,20 @@ class VersionWindow(elements.LimitedFrameBaseElement):
             justify=tk.CENTER
         )
 
-        elements = [title_label, subtitle_label, info_label]
+        rows = [title_label, subtitle_label, info_label]
 
         if upgrade_button:
-            elements.append(ttk.Button(master=self._frame, text="Upgrade", command=self._trigger_upgrade))
+            rows.append(elements.TextButton(self._frame, command=self._trigger_upgrade, text="Upgrade"))
         if continue_button:
-            elements.append(ttk.Button(master=self._frame, text="Continue (without upgrading)", command=exit_window_callback))
+            rows.append(elements.TextButton(self._frame, command=exit_window_callback, text="Continue (without upgrading)"))
 
-        for row, element in enumerate(elements, start=1):
+        for row, element in enumerate(rows, start=1):
             element.grid(column=1, row=row, pady=10)
 
         self._frame.grid_columnconfigure(0, weight=1)
         self._frame.grid_columnconfigure(2, weight=1)
         self._frame.grid_rowconfigure(0, weight=1)
-        self._frame.grid_rowconfigure(len(elements) + 1, weight=1)
+        self._frame.grid_rowconfigure(len(rows) + 1, weight=1)
 
     def _trigger_upgrade(self):
         db_upgrade.upgrade_database()
