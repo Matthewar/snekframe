@@ -15,6 +15,7 @@ from ..fonts import FONTS
 from ..icons import ICONS
 from ..params import WINDOW_WIDTH, TITLE_BAR_HEIGHT
 from .container import _FileSystemExplorer, PageDirection, ViewUpdate, ItemViewUpdate, NameViewUpdate, SelectViewUpdate, DirectionsUpdate, FullImageViewUpdate
+from . import container
 
 class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
     def __init__(self, parent, previous_page, up_page, next_page):
@@ -54,7 +55,7 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
 
         column = 0
 
-        self._select_all_button = elements.IconToggleButton(self._frame, select_all_photos, select_no_photos, icon_name="check_box_outline_blank", selected_icon_name="check_box", enabled=False, selected=False, style="Subtitle") # TODO: Support selected and disabled
+        self._select_all_button = elements.CheckBoxButton(self._frame, select_all_photos, select_no_photos, enabled=False, selected=elements.CheckBoxSelection.Unselected, style="Subtitle")
         self._select_all_button.grid(row=0, column=column, padx=10)
         self._select_all_button.grid_remove()
 
@@ -157,94 +158,6 @@ class NoPhotosPage(elements.LimitedFrameBaseElement):
         self._frame.grid_rowconfigure(0, weight=1)
         self._frame.grid_rowconfigure(len(rows), weight=1)
 
-class CheckBoxSelection(Enum):
-    Unselected = auto()
-    PartialSelect = auto()
-    Selected = auto()
-
-class _CheckBoxButton(_Button):
-    """Special version of radiobutton where selection has three states"""
-    def __init__(self, parent, select_command, unselect_command, enabled=True, selected=CheckBoxSelection.Unselected, **label_kwargs):
-        if not isinstance(selected, CheckBoxSelection):
-            raise TypeError()
-
-        self._selected = selected
-        self._unselect_command = unselect_command
-
-        base_style_name = f"{style}.Checkbox.Button.TLabel"
-
-        self._unselected_inactive_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[base_style_name])
-        self._unselected_active_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
-
-        self._partialselect_inactive_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"PartialSelect.{base_style_name}"])
-        self._partialselect_active_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Active.PartialSelect.{base_style_name}"])
-
-        self._selected_inactive_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Selected.{base_style_name}"])
-        self._selected_active_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Active.Selected.{base_style_name}"])
-
-        super().__init__(parent, ttk.Label, select_command, label_kwargs, enabled=enabled)
-
-    def invoke(self):
-        if not self._enabled:
-            # Don't trigger if already enabled
-            return
-
-        if self._selected in (CheckBoxSelection.Unselected, CheckBoxSelection.PartialSelect):
-            self.selected = CheckBoxSelection.Selected
-            self._command()
-        elif self._selected == CheckBoxSelection.Selected:
-            self.selected = CheckBoxSelection.Unselected
-            self._unselect_command()
-        else:
-            raise TypeError()
-
-    def _set_enable(self, enable):
-        # This will be removed when disabled, don't need to change appearance
-        if not isinstance(enable, bool):
-            raise TypeError()
-        self._enabled = enable
-
-    @property
-    def selected(self):
-        return self._selected
-
-    @selected.setter
-    def selected(self, select):
-        if not isinstance(select, CheckBoxSelection):
-            raise TypeError()
-
-        self._selected = select
-        self._style_normal()
-
-    def _style_normal(self):
-        if self._selected == CheckBoxSelection.Unselected:
-            image = self._unselected_inactive_icon
-        elif self._selected == CheckBoxSelection.PartialSelect:
-            image = self._partialselect_inactive_icon
-        elif self._selected == CheckBoxSelection.Selected:
-            image = self._selected_inactive_icon
-        else:
-            raise TypeError()
-
-        self._label.configure(image=image)
-        self._label.image = image
-
-    def _style_active(self):
-        if self._selected == CheckBoxSelection.Unselected:
-            image = self._unselected_active_icon
-        elif self._selected == CheckBoxSelection.PartialSelect:
-            image = self._partialselect_active_icon
-        elif self._selected == CheckBoxSelection.Selected:
-            image = self._selected_active_icon
-        else:
-            raise TypeError()
-
-        self._label.configure(image=image)
-        self._label.image = image
-
-    def _style_disabled(self):
-        self._style_normal()
-
 class _PhotoGalleryItemButton(elements._Button):
     def __init__(self, parent, command, enabled=True, album_text=None, photo_text=None, style="Default", **label_kwargs):
         if (album_text is not None) == (photo_text is not None):
@@ -268,15 +181,15 @@ class _PhotoGalleryItemButton(elements._Button):
 
     def _style_normal(self):
         if self._album_mode:
-            self._label.configure(image=self._album_icon_inactive)
-            self._label.image = self._album_icon_inactive
-        self._label.configure(style=self._style)
+            self._element.configure(image=self._album_icon_inactive)
+            self._element.image = self._album_icon_inactive
+        self._element.configure(style=self._style)
 
     def _style_active(self):
         if self._album_mode:
-            self._label.configure(image=self._album_icon_active)
-            self._label.image = self._album_icon_active
-        self._label.configure(style=f"Active.{self._style}")
+            self._element.configure(image=self._album_icon_active)
+            self._element.image = self._album_icon_active
+        self._element.configure(style=f"Active.{self._style}")
 
     def _style_disabled(self):
         self._style_normal()
@@ -284,14 +197,14 @@ class _PhotoGalleryItemButton(elements._Button):
     def set_album_text(self, album_text):
         """Switch button to album"""
         self._album_mode = True
-        self._label.configure(image=self._album_icon_inactive, text=album_text)
-        self._label.image = self._album_icon_inactive
+        self._element.configure(image=self._album_icon_inactive, text=album_text)
+        self._element.image = self._album_icon_inactive
 
     def set_photo_text(self, photo_text):
         """Switch button to photo"""
         self._album_mode = False
-        self._label.configure(image="", text=photo_text)
-        self._label.image = ""
+        self._element.configure(image="", text=photo_text)
+        self._element.image = ""
 
 class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
     """Single button for a photo or album"""
@@ -299,10 +212,12 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
         super().__init__(parent, {})
 
         # Uses enabled to indicate hidden
-        self._select_button = _CheckBoxButton(self._frame, select_command, unselect_command, enabled=False)
+        self._select_button = elements.CheckBoxButton(self._frame, select_command, unselect_command, enabled=False)
 
         self._open_button = _PhotoGalleryItemButton(self._frame, open_command, enabled=False, album_text="")
         self._open_button.place(x=0, y=0, relwidth=1, relheight=1, anchor="nw")
+
+        self._selections_enabled = False
 
     def _show_button(self, album_text=None, photo_text=None, selection_mode=None):
         if self._open_button.enabled:
@@ -319,6 +234,7 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
         if not self._open_button.enabled:
             return
         self._open_button.enabled = False
+        self._select_button.enabled = False
 
     def place(self, album_text=None, photo_text=None, selection_mode=None, **place_kwargs):
         self._show_button(album_text=album_text, photo_text=photo_text, selection_mode=selection_mode)
@@ -347,12 +263,33 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
 
     @selections_enabled.setter
     def selections_enabled(self, enable : bool):
-        if self._select_button.enabled and not enable:
+        if self._selections_enabled and not enable:
             self._select_button.place_forget()
-            self._select_button.enabled = False
-        elif not self._select_button.enabled and enable:
+            self._selections_enabled = False
+        elif not self._selections_enabled and enable:
             self._select_button.place(x=0, y=0, anchor="nw")
             self._select_button.tkraise()
+            self._selections_enabled = True
+            self._select_button.enabled = False
+            self._select_button.selection = elements.CheckBoxSelection.PartialSelect
+
+    @property
+    def selection(self):
+        if self._select_button.enabled:
+            return self._select_button.selected
+        return None
+
+    @selection.setter
+    def selection(self, select : container.PhotoDirectorySelection):
+        if select == container.PhotoDirectorySelection.Not:
+            self._select_button.selected = elements.CheckBoxSelection.Unselected
+        elif select == container.PhotoDirectorySelection.Partial:
+            self._select_button.selected = elements.CheckBoxSelection.PartialSelect
+        elif select == container.PhotoDirectorySelection.All:
+            self._select_button.selected = elements.CheckBoxSelection.Selected
+        else:
+            raise TypeError()
+        if self._selections_enabled and not self._select_button.enabled:
             self._select_button.enabled = True
 
 class PhotoGalleryPage(elements.LimitedFrameBaseElement):
@@ -378,7 +315,7 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
         self._frame.grid_rowconfigure(row_phy_index, weight=1)
         self._frame.grid_columnconfigure(column_phy_index, weight=1)
 
-        self._labels = {}
+        self._labels : dict[int, dict[int, _PhotoGalleryItem]] = {}
         def _get_callback(func, index):
             return lambda: func(index)
 
@@ -445,15 +382,21 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
         column = info.index % 3
 
         if isinstance(info, NameViewUpdate):
-            if info.directory:
-                self._labels[row][column].set_album_text(info.name)
-            else:
-                self._labels[row][column].set_photo_text(info.name)
-            self._labels[row][column].enabled = True
+            item_type = "album_text" if info.directory else "photo_text"
+            self._labels[row][column].grid(row=row, column=column, selection_mode=self._selections_enabled, **{item_type: info.name})
         elif isinstance(info, SelectViewUpdate):
             self._labels[row][column].selection = info.selection
         else:
             raise TypeError()
+
+    def set_select_all(self, selection : bool):
+        if selection:
+            item_selection = container.PhotoDirectorySelection.All
+        else:
+            item_selection = container.PhotoDirectorySelection.Not
+        for row in self._labels.values():
+            for item in row.values():
+                item.selection = item_selection
 
     def _open_item(self, index):
         if self._current_page_id is None:
@@ -500,7 +443,7 @@ class PhotoDisplayPage(elements.LimitedFrameBaseElement):
         self._photo = ttk.Label(self._frame, text="Photo Loading", style="Image.DisplayWindow.TLabel")
         self._photo.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self._select_button = _CheckBoxButton(self._frame, self._select_item, self._unselect_item, enabled=False)
+        self._select_button = elements.CheckBoxButton(self._frame, self._select_item, self._unselect_item, enabled=False)
 
         self.selections_enabled = selections_enabled
 
@@ -525,15 +468,29 @@ class PhotoDisplayPage(elements.LimitedFrameBaseElement):
         self.disable_page()
         super().grid_remove()
 
-    def update(self, info : FullImageViewUpdate):
-        if not isinstance(info, FullImageViewUpdate):
-            raise TypeError()
+    def update(self, info):
         if info.current_page_id != self._current_page_id:
             return
 
-        self._image = info.image
-        self._photo.configure(image=info.image)
-        self._photo.image = info.image
+        if isinstance(info, FullImageViewUpdate):
+            self._image = info.image
+            self._photo.configure(image=info.image)
+            self._photo.image = info.image
+        elif isinstance(info, SelectViewUpdate):
+            if info.selection == container.PhotoDirectorySelection.All:
+                self._select_button.selected = elements.CheckBoxSelection.Selected
+            elif info.selection == container.PhotoDirectorySelection.Not:
+                self._select_button.selected = elements.CheckBoxSelection.Unselected
+            else:
+                raise TypeError()
+        else:
+            raise TypeError()
+
+    def set_select_all(self, selection : bool):
+        if selection:
+            self._select_button.selected = elements.CheckBoxSelection.Selected
+        else:
+            self._select_button.selected = elements.CheckBoxSelection.Unselected
 
     def _select_item(self):
         if self._current_page_id is None:
@@ -698,13 +655,13 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
             pass
         elif direction == PageDirection.Up:
             self._page_name.pop()
-            self._title_bar.text = os.path.join(*self._page_name)
+            self._title_bar.title = os.path.join(*self._page_name)
             #if new_page_info.title is not None:
         elif isinstance(direction, int): # For into
             if new_page_info.title is None:
                 raise Exception()
             self._page_name.append(new_page_info.title)
-            self._title_bar.text = os.path.join(*self._page_name)
+            self._title_bar.title = os.path.join(*self._page_name)
 
         new_window.setup_new_page(new_page_info.new_page_id)
 
@@ -758,9 +715,11 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
             return
         if isinstance(self._current_window, (PhotoGalleryPage, PhotoDisplayPage)):
             self._file_explorer.request_select_all(self._current_window.page_id, True)
+            self._current_window.set_select_all(True)
 
     def _select_no_photos(self):
         if not self._selection_mode:
             return
         if isinstance(self._current_window, (PhotoGalleryPage, PhotoDisplayPage)):
             self._file_explorer.request_select_all(self._current_window.page_id, False)
+            self._current_window.set_select_all(False)

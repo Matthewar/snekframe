@@ -340,7 +340,10 @@ class _FileSystemExplorer:
 
                             selection = next_pages[current_display_index].selected
                         else:
-                            selection = directory_info[-1].selected
+                            if directory_info[-1].selected:
+                                selection = PhotoDirectorySelection.All
+                            else:
+                                selection = PhotoDirectorySelection.Not
 
                         self._return_data_queue.put(
                             SelectViewUpdate(
@@ -372,7 +375,13 @@ class _FileSystemExplorer:
                         total_selection = None
                         for page_id in range(directory_info[0].num_pages):
                             for page in directory_info[0].get_page(page_id):
-                                page_selection = page.selected
+                                if isinstance(page, CurrentDirectoryInfo):
+                                    page_selection = page.selected
+                                elif page.selected:
+                                    page_selection = PhotoDirectorySelection.All
+                                else:
+                                    page_selection = PhotoDirectorySelection.Not
+
                                 if page_selection == PhotoDirectorySelection.Partial:
                                     total_selection = page_selection
                                     break
