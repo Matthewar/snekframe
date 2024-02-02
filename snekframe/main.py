@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from . import db, styles, params, elements
+from .db import upgrade as db_upgrade
 from .fonts import FONTS
 from .styles import STYLES
 from .photos.main import PhotoWindow
@@ -87,7 +88,7 @@ class VersionWindow(elements.LimitedFrameBaseElement):
         self._frame.grid_rowconfigure(len(elements) + 1, weight=1)
 
     def _trigger_upgrade(self):
-        db.upgrade.upgrade_database()
+        db_upgrade.upgrade_database()
         self._exit_window_callback()
 
 class MainWindow:
