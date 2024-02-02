@@ -523,7 +523,7 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
 
     Allows user to select which photos to display
     """
-    def __init__(self, parent : ttk.Frame, photo_container : PhotoContainer, regenerate_slideshow): # TODO should pass width
+    def __init__(self, parent : ttk.Frame, photo_container : container.PhotoContainer, regenerate_slideshow): # TODO should pass width
         super().__init__(parent, {})
 
         self._photo_container = photo_container
