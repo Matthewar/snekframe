@@ -70,11 +70,11 @@ class VersionWindow:
         else:
             raise Exception("Shouldn't hit this")
 
-        subtitle_label = ttk.Label(master=self._window, text=info_text, fonts=FONTS.subtitle, justify=tk.CENTER)
+        subtitle_label = ttk.Label(master=self._window, text=info_text, font=FONTS.subtitle, justify=tk.CENTER)
         info_label = ttk.Label(
             master=self._window,
             text=f"Current Version: {current_major}.{current_minor} - New Version: {db.version.DATABASE_VERSION_MAJOR}.{db.version.DATABASE_VERSION_MINOR}",
-            fonts=FONTS.default,
+            font=FONTS.default,
             justify=tk.CENTER
         )
 
