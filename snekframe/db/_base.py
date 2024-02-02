@@ -14,7 +14,10 @@ class PersistentBase(DeclarativeBase):
 class SharedBase(DeclarativeBase):
     """Permanent and Runtime DB Class"""
 
-PERSISTENT_ENGINE = create_engine("sqlite:///{}".format(os.path.join(params.FILES_LOCATION, params.DATABASE_NAME)))
+DATABASE_FILE_PATH = os.path.join(params.FILES_LOCATION, params.DATABASE_NAME)
+BACKUP_DATABASE_FILE_PATH = f"{DATABASE_FILE_PATH}.bak"
+
+PERSISTENT_ENGINE = create_engine(f"sqlite:///{DATABASE_FILE_PATH}")
 PERSISTENT_SESSION = sessionmaker(PERSISTENT_ENGINE)
 
 RUNTIME_ENGINE = create_engine("sqlite://")

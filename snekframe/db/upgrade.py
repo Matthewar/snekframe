@@ -1,9 +1,11 @@
 """Functions for upgrading the database"""
 
+import shutil
+
 from sqlalchemy.sql.expression import select
 
 from .version import get_database_version
-from ._base import PERSISTENT_SESSION, PERSISTENT_ENGINE
+from ._base import PERSISTENT_SESSION, PERSISTENT_ENGINE, DATABASE_FILE_PATH, BACKUP_DATABASE_FILE_PATH
 from . import _v0 as v0, _v1 as v1
 
 def _upgrade_v0_to_v1():
@@ -46,6 +48,8 @@ def upgrade_database():
             raise Exception(f"Unknown database version v0.{version_minor}")
     else:
         raise Exception(f"Unknown database version v{version_major}.{version_minor}")
+
+    shutil.copyfile(DATABASE_FILE_PATH, BACKUP_DATABASE_FILE_PATH)
 
     for upgrade in upgrades_required:
         upgrade()
