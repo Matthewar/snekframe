@@ -159,16 +159,16 @@ class NoPhotosPage(elements.LimitedFrameBaseElement):
         self._frame.grid_rowconfigure(len(rows), weight=1)
 
 class _PhotoGalleryItemButton(elements._Button):
-    def __init__(self, parent, command, enabled=True, album_text=None, photo_text=None, style="Default", **label_kwargs):
+    def __init__(self, parent, command, enabled=True, album_text=None, photo_text=None, **label_kwargs):
         if (album_text is not None) == (photo_text is not None):
             raise TypeError()
 
-        self._style = f"{style}.GalleryItem.Button.TLabel"
+        self._style = "GalleryItem.Button.TLabel"
         self._album_icon_inactive = ICONS.get("folder", **styles._ICON_STYLES[self._style])
         self._album_icon_active = ICONS.get("folder", **styles._ICON_STYLES[f"Active.{self._style}"])
         self._album_mode = album_text is not None
 
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, compound="center")
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, compound="center", style=self._style)
 
         if album_text is not None:
             self.set_album_text(album_text)

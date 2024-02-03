@@ -136,6 +136,23 @@ _ICON_STYLES = {
         "background": SUBTITLE_BACKGROUND_COLOUR,
         "pathcolour": Colour(0xffffff),
     },
+
+    "GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xabb0b8),
+    },
+    "Active.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+    "Disabled.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0x000000),
+    },
+    "Selected.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
 }
 
 class _StyleGenerator:
@@ -167,6 +184,11 @@ class _StyleGenerator:
         styles.configure("Active.Default.IconText.Button.TFrame", background=Colour(0xffffff).string)
         styles.configure("Disabled.Default.IconText.Button.TFrame", background=Colour(0x000000).string)
         styles.configure("Selected.Default.IconText.Button.TFrame", background=Colour(0xffffff).string, foreground="#abb0b8")
+
+        styles.configure("GalleryItem.Button.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+        styles.configure("Active.GalleryItem.Button.TFrame", background="#ffffff")
+        #styles.configure("Disabled.GalleryItem.Button.TFrame", background="#000000")
+        #styles.configure("Selected.GalleryItem.Button.TFrame", background="#ffffff", foreground="#000000")
 
         styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR.string)
         styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string)
