@@ -39,6 +39,7 @@ HIGHLIGHT_BACKGROUND_COLOUR = Colour(0x2E3033)
 PHOTO_BACKGROUND_COLOUR = Colour("0x000000") # Black
 FONT_COLOUR = Colour(0xffffff) # White
 DISABLED_COLOUR = Colour(0xabb0b8)
+SUBTITLE_BACKGROUND_COLOUR = Colour(0x58595C)
 
 def _append_style_name(base_style : str, style_name : Optional[str]) -> str:
     """Helper function to build a style name"""
@@ -119,6 +120,22 @@ _ICON_STYLES = {
         "background": Colour(0xffffff),
         "pathcolour": HIGHLIGHT_BACKGROUND_COLOUR,
     },
+    "SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xabb0b8),
+    },
+    "Active.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+    "Disabled.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0x000000),
+    },
+    "Selected.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
 }
 
 class _StyleGenerator:
@@ -155,6 +172,8 @@ class _StyleGenerator:
         styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string)
         styles.configure("TitleBar.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
         styles.configure("TitleBar.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
-        styles.configure("TitleBar.TButton", background=DEFAULT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+
+        styles.configure("SubTitleBar.TFrame", background=SUBTITLE_BACKGROUND_COLOUR.string)
+        styles.configure("SubTitleBar.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
 
 STYLES = _StyleGenerator()

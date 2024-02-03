@@ -19,7 +19,7 @@ from . import container
 
 class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
     def __init__(self, parent, previous_page, up_page, next_page):
-        super().__init__(parent, {})
+        super().__init__(parent, {}, style="SubTitleBar.TFrame")
 
         def get_callback(pagechange_callback):
             def button_callback():
@@ -27,13 +27,13 @@ class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
                 pagechange_callback()
             return button_callback
 
-        self._previous_page = elements.IconButton(self._frame, get_callback(previous_page), "arrow_back", enabled=False, style="Subtitle")
+        self._previous_page = elements.IconButton(self._frame, get_callback(previous_page), "arrow_back", enabled=False, style="SubTitleBar")
         self._previous_page.grid(row=0, column=0, padx=(25, 10))
 
-        self._up_page = elements.IconButton(self._frame, get_callback(up_page), "arrow_upward", enabled=False, style="Subtitle")
+        self._up_page = elements.IconButton(self._frame, get_callback(up_page), "arrow_upward", enabled=False, style="SubTitleBar")
         self._up_page.grid(row=0, column=1, padx=(15, 10))
 
-        self._next_page = elements.IconButton(self._frame, get_callback(next_page), "arrow_forward", enabled=False, style="Subtitle")
+        self._next_page = elements.IconButton(self._frame, get_callback(next_page), "arrow_forward", enabled=False, style="SubTitleBar")
         self._next_page.grid(row=0, column=2, padx=(15, 0))
 
     def set_button_enables(self, back=None, up=None, forward=None):
@@ -46,7 +46,7 @@ class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
 
 class GallerySelectButtons(elements.LimitedFrameBaseElement):
     def __init__(self, parent, photos_container, start_selection_mode, end_selection_mode, select_all_photos, select_no_photos):
-        super().__init__(parent, {})
+        super().__init__(parent, {}, style="SubTitleBar.TFrame")
 
         self._photos_container = photos_container
 
@@ -55,24 +55,24 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
 
         column = 0
 
-        self._select_all_button = elements.CheckBoxButton(self._frame, select_all_photos, select_no_photos, enabled=False, selected=elements.CheckBoxSelection.Unselected, style="Subtitle")
+        self._select_all_button = elements.CheckBoxButton(self._frame, select_all_photos, select_no_photos, enabled=False, selected=elements.CheckBoxSelection.Unselected, style="SubTitleBar")
         self._select_all_button.grid(row=0, column=column, padx=10)
         self._select_all_button.grid_remove()
 
         column += 1
 
-        self._selection_button = elements.TextButton(self._frame, self._start_selection_mode, text="Select Photos", enabled=photos_container.num_photos > 0, style="Subtitle")
+        self._selection_button = elements.TextButton(self._frame, self._start_selection_mode, text="Select Photos", enabled=photos_container.num_photos > 0, style="SubTitleBar")
         self._selection_button.grid(row=0, column=column, padx=10)
 
         column += 1
 
-        self._cancel_selection_button = elements.IconButton(self._frame, lambda: self._end_selection_mode(save=False), icon_name="cross", enabled=False, style="Subtitle")
+        self._cancel_selection_button = elements.IconButton(self._frame, lambda: self._end_selection_mode(save=False), icon_name="cross", enabled=False, style="SubTitleBar")
         self._cancel_selection_button.grid(row=0, column=column, padx=10)
         self._cancel_selection_button.grid_remove()
 
         column += 1
 
-        self._save_selection_button = elements.IconButton(self._frame, lambda: self._end_selection_mode(save=True), icon_name="tick", enabled=False, style="Subtitle")
+        self._save_selection_button = elements.IconButton(self._frame, lambda: self._end_selection_mode(save=True), icon_name="tick", enabled=False, style="SubTitleBar")
         self._save_selection_button.grid(row=0, column=column, padx=10)
         self._save_selection_button.grid_remove()
 
@@ -118,12 +118,12 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
 class GalleryTitleBar(elements.LimitedFrameBaseElement): # TODO: Rename styles
     """Gallery options"""
     def __init__(self, parent, previous_page, up_page, next_page, photos_container, start_selection_mode, end_selection_mode, select_all_photos, select_no_photos):
-        super().__init__(parent, {})
+        super().__init__(parent, {}, style="SubTitleBar.TFrame")
 
         self._album_buttons = GalleryAlbumButtons(self._frame, previous_page, up_page, next_page)
         self._album_buttons.place(relx=0, rely=0.5, anchor="w")
 
-        self._title = elements.UpdateLabel(self._frame, initialtext="All Photos", style="Subtitle")
+        self._title = elements.UpdateLabel(self._frame, initialtext="All Photos", style="SubTitleBar")
         self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         self._select_buttons = GallerySelectButtons(self._frame, photos_container, start_selection_mode, end_selection_mode, select_all_photos, select_no_photos)
