@@ -238,7 +238,7 @@ class _FileSystemExplorer:
         if self._thread is not None:
             raise Exception()
 
-        self._thread = threading.Thread(self._explorer_thread)
+        self._thread = threading.Thread(target=self._explorer_thread)
         self._thread.start()
 
         self._opening_page = True
