@@ -825,7 +825,7 @@ class PhotoContainer:
                                 update(ExistingFiles).where(ExistingFiles.photo_path == str(relative_path)).values(found=True).returning(ExistingFiles.id)
                             ).one_or_none()
                             if found_image is None:
-                                persistent_session.add(PhotoListV1(filename=path.name, path=relative_path.parent))
+                                persistent_session.add(PhotoListV1(filename=path.name, path=str(relative_path.parent)))
                                 logging.info("Found new image '%s' in '%s'", path.name, relative_path)
                                 photo_selected = False
                             else:
@@ -857,7 +857,7 @@ class PhotoContainer:
                         prefix_path = None
                         directory_name = None
                     else:
-                        prefix_path = directory.parent if directory.parent != pathlib.Path(".") else None
+                        prefix_path = str(directory.parent) if directory.parent != pathlib.Path(".") else None
                         directory_name = directory.name
                     runtime_session.add(NumPhotos(num_photos=num_photos, num_albums=num_albums, directory=directory_name, prefix_path=prefix_path, selected=directory_selected.value))
                     return True, directory_selected
