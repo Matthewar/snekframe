@@ -905,16 +905,16 @@ class PhotoContainer:
 
         This doesn't affect the persistent DB
         """
-        with RUNTIME_SESSION() as session:
-            session.execute(delete(PhotoOrder))
+        with RUNTIME_SESSION() as runtime_session, PERSISTENT_SESSION() as persistent_session:
+            runtime_session.execute(delete(PhotoOrder))
 
             query = select(PhotoListV1.id).where(PhotoListV1.selected == True)
             if shuffle:
                 query.order_by(func.random())
 
-            for row in session.execute(query):
-                session.add(PhotoOrder(photo_id=row))
-            session.commit()
+            for row in persistent_session.execute(query):
+                runtime_session.add(PhotoOrder(photo_id=row))
+            runtime_session.commit()
 
     @property
     def num_selected_photos(self):
