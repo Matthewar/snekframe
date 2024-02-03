@@ -21,7 +21,7 @@ class EntryWindow(elements.LimitedFrameBaseElement):
         title_label = ttk.Label(self._frame, text="Hello!", font=FONTS.title)
         subtitle_label = ttk.Label(self._frame, text="Press 'Start' to create database and startup system", font=FONTS.subtitle)
         info_label = ttk.Label(self._frame, text="This will reset and create a new database.\nIf not expecting to see this message, please contact your local Matt", justify=tk.LEFT, font=FONTS.default)
-        basic_settings_button = ttk.Button(self._frame, text="Start", command=exit_window_callback) # font
+        basic_settings_button = elements.TextButton(self._frame, text="Start", command=exit_window_callback) # font
 
         # TODO: Add warning symbol
 
