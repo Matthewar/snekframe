@@ -346,19 +346,19 @@ class CheckBoxButton(_Button):
         self._selected = selected
         self._unselect_command = unselect_command
 
-        base_style_name = f"{style}.Checkbox.Button.TLabel"
+        base_style_name = f"{style}.Icon.Button.TLabel"
 
         self._unselected_inactive_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[base_style_name])
         self._unselected_active_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
         self._unselected_disabled_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
 
-        self._partialselect_inactive_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"PartialSelect.{base_style_name}"])
-        self._partialselect_active_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Active.PartialSelect.{base_style_name}"])
-        self._partialselect_disabled_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Disabled.PartialSelect.{base_style_name}"])
+        self._partialselect_inactive_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[base_style_name])
+        self._partialselect_active_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
+        self._partialselect_disabled_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
 
-        self._selected_inactive_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Selected.{base_style_name}"])
-        self._selected_active_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Active.Selected.{base_style_name}"])
-        self._selected_disabled_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Disabled.Selected.{base_style_name}"])
+        self._selected_inactive_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[base_style_name])
+        self._selected_active_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
+        self._selected_disabled_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
 
         super().__init__(parent, ttk.Label, select_command, label_kwargs, enabled=enabled)
 
