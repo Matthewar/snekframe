@@ -614,7 +614,7 @@ class CurrentDirectoryInfo:
         self._path = prefix_path
         self._name = directory
         self._runtime_session = runtime_session
-        self._persistent_session = runtime_session
+        self._persistent_session = persistent_session
         if prefix_path is None:
             if directory is None:
                 self._full_path = ""
