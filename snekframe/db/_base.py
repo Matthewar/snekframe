@@ -5,6 +5,7 @@ import os.path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from .. import params
 
@@ -20,7 +21,11 @@ BACKUP_DATABASE_FILE_PATH = f"{DATABASE_FILE_PATH}.bak"
 PERSISTENT_ENGINE = create_engine(f"sqlite:///{DATABASE_FILE_PATH}")
 PERSISTENT_SESSION = sessionmaker(PERSISTENT_ENGINE)
 
-RUNTIME_ENGINE = create_engine("sqlite://")
+RUNTIME_ENGINE = create_engine(
+    "sqlite://",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
+)
 RUNTIME_SESSION = sessionmaker(RUNTIME_ENGINE)
 
 class DeprecatedPersistentOrSharedBase(DeclarativeBase):
