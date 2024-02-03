@@ -25,15 +25,15 @@ class EntryWindow(elements.LimitedFrameBaseElement):
 
         # TODO: Add warning symbol
 
-        elements = (title_label, subtitle_label, info_label, basic_settings_button)
+        rows = (title_label, subtitle_label, info_label, basic_settings_button)
 
-        for row, element in enumerate(elements, start=1):
+        for row, element in enumerate(rows, start=1):
             element.grid(column=1, row=row, pady=10)
 
         self._frame.grid_columnconfigure(0, weight=1)
         self._frame.grid_columnconfigure(2, weight=1)
         self._frame.grid_rowconfigure(0, weight=1)
-        self._frame.grid_rowconfigure(len(elements) + 1, weight=1)
+        self._frame.grid_rowconfigure(len(rows) + 1, weight=1)
 
         logging.info("Generated entry window")
 
