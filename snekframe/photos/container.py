@@ -785,7 +785,7 @@ class PhotoContainer:
             runtime_session.execute(delete(NumPhotos))
             runtime_session.commit()
 
-            existing_photos = persistent_session.scalars(
+            existing_photos = persistent_session.execute(
                 select(PhotoListV1.path, PhotoListV1.filename)
             )
             for row in existing_photos:
