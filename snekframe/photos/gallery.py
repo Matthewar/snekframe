@@ -684,7 +684,7 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
     def _goto_up_page(self):
         self._goto_page(PageDirection.Up)
 
-    def _open_page(self, current_page_id, index):
+    def _open_item(self, current_page_id, index):
         self._goto_page(index, current_page_id=current_page_id)
 
     def _start_selection_mode(self):
