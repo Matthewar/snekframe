@@ -67,7 +67,7 @@ class PhotoTitleBar(elements.LimitedFrameBaseElement):
     """Titlebar for system"""
 
     def __init__(self, parent, photo_selection, open_slideshow, open_gallery, open_settings, open_voltage_warning):
-        super().__init__(parent, {}, style="TitleBar.TFrame")
+        super().__init__(parent, {}, style="TitleBar")
 
         self._title = elements.UpdateLabel(self._frame, justify=tk.CENTER, font=FONTS.title, style="TitleBar")
         self._title.place(relx=0.5, rely=0.5, anchor=tk.CENTER)

@@ -49,7 +49,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             settings_container : settings.SettingsContainer,
             show_title : Callable[[], None],
             hide_title : Callable[[], None]):
-        super().__init__(parent, {}, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="DisplayWindow.TFrame")
+        super().__init__(parent, {}, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="DisplayWindow")
 
         self._settings = settings_container
         self._show_title = show_title

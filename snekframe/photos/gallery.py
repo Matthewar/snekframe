@@ -19,7 +19,7 @@ from . import container
 
 class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
     def __init__(self, parent, previous_page, up_page, next_page):
-        super().__init__(parent, {}, style="SubTitleBar.TFrame")
+        super().__init__(parent, {}, style="SubTitleBar")
 
         def get_callback(pagechange_callback):
             def button_callback():
@@ -46,7 +46,7 @@ class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
 
 class GallerySelectButtons(elements.LimitedFrameBaseElement):
     def __init__(self, parent, photos_container, start_selection_mode, end_selection_mode, select_all_photos, select_no_photos):
-        super().__init__(parent, {}, style="SubTitleBar.TFrame")
+        super().__init__(parent, {}, style="SubTitleBar")
 
         self._photos_container = photos_container
 
@@ -118,7 +118,7 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
 class GalleryTitleBar(elements.LimitedFrameBaseElement): # TODO: Rename styles
     """Gallery options"""
     def __init__(self, parent, previous_page, up_page, next_page, photos_container, start_selection_mode, end_selection_mode, select_all_photos, select_no_photos):
-        super().__init__(parent, {}, style="SubTitleBar.TFrame")
+        super().__init__(parent, {}, style="SubTitleBar")
 
         self._album_buttons = GalleryAlbumButtons(self._frame, previous_page, up_page, next_page)
         self._album_buttons.place(relx=0, rely=0.5, anchor="w")
@@ -432,7 +432,7 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
 
 class PhotoDisplayPage(elements.LimitedFrameBaseElement):
     def __init__(self, parent, select_item, unselect_item, selections_enabled):
-        super().__init__(parent, {}, style="DisplayWindow.TFrame")
+        super().__init__(parent, {}, style="DisplayWindow")
 
         self._select_item_callback = select_item
         self._unselect_item_callback = unselect_item
