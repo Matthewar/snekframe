@@ -143,10 +143,6 @@ class PhotoTitleBar(elements.LimitedFrameBaseElement):
             self._datetime.pause_updates()
         self._visible = False
 
-    def display_photo_title(self, title):
-        self._title.text = title
-        self._title_menu_buttons.deselect_all()
-
     def invoke_settings_button(self):
         """Invoke the settings button
 
@@ -160,3 +156,10 @@ class PhotoTitleBar(elements.LimitedFrameBaseElement):
         This will trigger updating this class for gallery along with the gallery callback triggers
         """
         self._gallery_button.invoke()
+
+    def invoke_slideshow_button(self):
+        """Invoke the slideshow button
+
+        This will trigger updating this class for slideshow along with the slideshow callback triggers
+        """
+        self._slideshow_button.invoke()

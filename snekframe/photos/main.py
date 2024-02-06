@@ -43,7 +43,7 @@ class PhotoWindow:
         if not self._photos.photos_selected:
             self._title_bar.invoke_gallery_button()
         else:
-            self._open_slideshow_window()
+            self._title_bar.invoke_slideshow_button()
 
     def place(self, **place_kwargs):
         self._window.place(**place_kwargs)
@@ -91,12 +91,6 @@ class PhotoWindow:
             self._display_window = PhotoDisplayWindow(self._window, self._settings, self._title_bar.place, self._title_bar.place_forget)
         elif self._gallery_regenerate_required:
             self._display_window.regenerate_window()
-
-        #if self._selection.all_photos_selected:
-        #    self._title_bar.display_photo_title("All Photos")
-        #else:
-        #    self._title_bar.display_photo_title(self._selection.album)
-        self._title_bar.display_photo_title("Slideshow")
 
         self._display_window.place(x=0, y=0, anchor="nw")
         self._current_window = self.OpenWindow.Display
