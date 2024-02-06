@@ -338,7 +338,14 @@ class _FileSystemExplorer:
                             if next_pages is None:
                                 raise Exception()
 
-                            selection = next_pages[current_display_index].selected
+                            next_page = next_pages[current_display_index]
+                            if isinstance(next_page, CurrentDirectoryInfo):
+                                selection = next_page.selected
+                            else:
+                                if next_page.selected:
+                                    selection = PhotoDirectorySelection.All
+                                else:
+                                    selection = PhotoDirectorySelection.Not
                         else:
                             if directory_info[-1].selected:
                                 selection = PhotoDirectorySelection.All
@@ -599,6 +606,7 @@ class PhotoInfo:
 
     def _set_selected(self, selection : bool, propagate_up : bool = True):
         if selection != self.selected:
+            self._selection = selection
             self._persistent_session.execute(
                 update(PhotoListV1).where(PhotoListV1.id == self._id).values(selected=selection)
             )
@@ -695,6 +703,7 @@ class CurrentDirectoryInfo:
                     select(NumPhotos.selected).where(and_(NumPhotos.prefix_path == self._path, NumPhotos.directory == self._name))
                 ).one()
             )
+        return self._selection
 
     @selected.setter
     def selected(self, selection): # Wrong?
@@ -702,6 +711,7 @@ class CurrentDirectoryInfo:
 
     def _set_selected(self, selection : bool, propagate_up : bool = True, propagate_down : bool = True):
         if (selection and self.selected != PhotoDirectorySelection.All) or (not selection and self.selected != PhotoDirectorySelection.Not):
+            self._selection = PhotoDirectorySelection.All if selection else PhotoDirectorySelection.Not
             self._runtime_session.execute(
                 update(NumPhotos).where(and_(NumPhotos.prefix_path == self._path, NumPhotos.directory == self._name)).values(selected=PhotoDirectorySelection.All.value if selection else PhotoDirectorySelection.Not.value)
             )
@@ -713,6 +723,9 @@ class CurrentDirectoryInfo:
                         item._set_selected(selection, propagate_up=False)
 
     def _child_changed(self, selection):
+        if not isinstance(selection, (bool, PhotoDirectorySelection)):
+            raise TypeError()
+
         if selection == PhotoDirectorySelection.Partial:
             self._selection = selection
             self._runtime_session.execute(
@@ -721,7 +734,9 @@ class CurrentDirectoryInfo:
             if self._parent is not None:
                 self._parent._child_changed(selection)
         else:
-            if selection:
+            if isinstance(selection, PhotoDirectorySelection):
+                total_selection = selection
+            elif selection:
                 total_selection = PhotoDirectorySelection.All
             else:
                 total_selection = PhotoDirectorySelection.Not
@@ -742,6 +757,7 @@ class CurrentDirectoryInfo:
                 if selection_discovered:
                     break
             if total_selection != self._selection:
+                self._selection = total_selection
                 self._runtime_session.execute(
                     update(NumPhotos).where(and_(NumPhotos.prefix_path == self._path, NumPhotos.directory == self._name)).values(selected=total_selection.value)
                 )
