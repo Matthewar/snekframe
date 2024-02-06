@@ -119,14 +119,14 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_left = PIL_ImageTk.PhotoImage(
             _resize_image(
                 PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[1].photo_id)[0]
+                    self._get_photo_paths(self._image_ids[1])[0]
                 )
             )
         )
         self._image_centre = PIL_ImageTk.PhotoImage(
             _resize_image(
                 PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[2].photo_id)[0]
+                    self._get_photo_paths(self._image_ids[2])[0]
                 )
             )
         )
@@ -135,7 +135,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_right = PIL_ImageTk.PhotoImage(
             _resize_image(
                 PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[3].photo_id)[0]
+                    self._get_photo_paths(self._image_ids[3])[0]
                 )
             )
         )
@@ -144,8 +144,6 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._frame.bind("<ButtonRelease-1>", self._frame_detect_release)
         self._photo.bind("<Button-1>", self._photo_detect_click)
         self._photo.bind("<ButtonRelease-1>", self._photo_detect_release)
-
-        self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
 
     def _get_photo_paths(self, *ids : _ImageIdPair):
         results = []
@@ -215,13 +213,14 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         with RUNTIME_SESSION() as session:
             forward_images = session.scalars(forward_query).all()
             next_image = forward_images[0]
-            self._image_ids.append(_ImageIdPair(ordering_id=next_image.id, photo_id=next_image.photo_id))
+            next_image_id = _ImageIdPair(ordering_id=next_image.id, photo_id=next_image.photo_id)
+            self._image_ids.append(next_image_id)
             if len(forward_images) > 1:
                 self._image_ids.append(_ImageIdPair(ordering_id=forward_images[1].id, photo_id=forward_images[1].photo_id))
             else:
                 self._image_ids.append(None)
 
-        return next_image
+        return next_image_id
 
     def _get_reverse_image(self):
         reverse_query = select(PhotoOrder)
@@ -232,13 +231,14 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         with RUNTIME_SESSION() as session:
             reverse_images = session.scalars(reverse_query).all()
             prev_image = reverse_images[0]
-            self._image_ids.appendleft(_ImageIdPair(ordering_id=prev_image.id, photo_id=prev_image.photo_id))
+            prev_image_id = _ImageIdPair(ordering_id=prev_image.id, photo_id=prev_image.photo_id)
+            self._image_ids.appendleft(prev_image_id)
             if len(reverse_images) > 1:
                 self._image_ids.appendleft(_ImageIdPair(ordering_id=reverse_images[1].id, photo_id=reverse_images[1].photo_id))
             else:
                 self._image_ids.appendleft(None)
 
-        return prev_image
+        return prev_image_id
 
     class _ActionType(Enum):
         Reverse = auto()
@@ -335,7 +335,13 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_right
 
         new_image_right_info = self._get_forward_image()
-        self._image_right = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_right_info.album, new_image_right_info.filename))))
+        self._image_right = PIL_ImageTk.PhotoImage(
+            _resize_image(
+                PIL_Image.open(
+                    self._get_photo_paths(new_image_right_info)[0]
+                )
+            )
+        )
 
     def _switch_reverse_image(self):
         self._photo.configure(image=self._image_left)
@@ -345,7 +351,13 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_left
 
         new_image_left_info = self._get_reverse_image()
-        self._image_left = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, new_image_left_info.album, new_image_left_info.filename))))
+        self._image_left = PIL_ImageTk.PhotoImage(
+            _resize_image(
+                PIL_Image.open(
+                    self._get_photo_paths(new_image_left_info)[0]
+                )
+            )
+        )
 
     def _transition_next_photo(self):
         current_time = datetime.datetime.now()
@@ -369,6 +381,13 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._image_centre = self._image_right
 
         image_right_info = self._get_forward_image()
+        self._image_right = PIL_ImageTk.PhotoImage(
+            _resize_image(
+                PIL_Image.open(
+                    self._get_photo_paths(image_right_info)[0]
+                )
+            )
+        )
         self._image_right = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
         self._last_transition_time = datetime.datetime.now()
 
