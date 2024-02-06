@@ -368,7 +368,7 @@ class _FileSystemExplorer:
                         if not isinstance(directory_info[-1], CurrentDirectoryInfo):
                             # TODO: Thumbnails for directories
                             # For now only output normal image
-                            image = PIL_ImageTk.PhotoImage(display._resize_image(directory_info[-1].generate_image, max_height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT*2))
+                            image = PIL_ImageTk.PhotoImage(display._resize_image(directory_info[-1].generate_image(), max_height=WINDOW_HEIGHT-TITLE_BAR_HEIGHT*2))
                             self._return_data_queue.put(
                                 FullImageViewUpdate(
                                     current_page_id=current_page_id,
@@ -452,8 +452,6 @@ class _FileSystemExplorer:
                     elif isinstance(item, GoToPage):
                         if current_page_id != item.current_page_id:
                             raise Exception()
-                        if isinstance(directory_info[-1], CurrentDirectoryInfo):
-                            raise Exception()
 
                         if item.direction == PageDirection.Up:
                             if len(directory_info) < 2:
@@ -465,6 +463,8 @@ class _FileSystemExplorer:
                             new_title = None
                         else:
                             if not directory_info:
+                                raise Exception()
+                            if not isinstance(directory_info[-1], CurrentDirectoryInfo):
                                 raise Exception()
 
                             # TODO Check for forward/back?
@@ -486,10 +486,9 @@ class _FileSystemExplorer:
 
                         next_pages = directory_info[-1].get_page(page_number[-1])
 
-                        current_display_stage = [self._PageDisplayStage.Directions]
-                        if directory:
-                            current_display_stage.append(self._PageDisplayStage.Name)
-                        current_display_stage += [
+                        current_display_stage = [
+                            self._PageDisplayStage.Directions,
+                            self._PageDisplayStage.Name,
                             self._PageDisplayStage.Selection,
                             self._PageDisplayStage.Image,
                             self._PageDisplayStage.SelectDirection
@@ -528,7 +527,7 @@ class _FileSystemExplorer:
                                 selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
                             )
                         )
-                        if current_display_stage[0] == self._PageDisplayStage.Selection:
+                        if current_display_stage and current_display_stage[0] == self._PageDisplayStage.Selection:
                             current_display_index = 0
                         else:
                             current_display_stage.append(self._PageDisplayStage.Selection)
@@ -548,10 +547,9 @@ class _FileSystemExplorer:
                             )
                         )
 
-                        current_display_stage = [self._PageDisplayStage.Directions]
-                        if directory:
-                            current_display_stage.append(self._PageDisplayStage.Name)
-                        current_display_stage += [
+                        current_display_stage = [
+                            self._PageDisplayStage.Directions,
+                            self._PageDisplayStage.Name,
                             self._PageDisplayStage.Selection,
                             self._PageDisplayStage.Image,
                             self._PageDisplayStage.SelectDirection
@@ -625,7 +623,7 @@ class CurrentDirectoryInfo:
         self._persistent_session = persistent_session
         if prefix_path is None:
             if directory is None:
-                self._full_path = ""
+                self._full_path = None
             else:
                 self._full_path = directory
         elif directory is None:
@@ -663,7 +661,7 @@ class CurrentDirectoryInfo:
 
         if self._num_albums != 0:
             result = self._runtime_session.scalars(
-                select(NumPhotos).where(NumPhotos.prefix_path == self._full_path)
+                select(NumPhotos).where(and_(NumPhotos.prefix_path == self._full_path, NumPhotos.directory != None))
             )
             for row in result:
                 if len(self._pages[page_number]) == self._num_items_per_page:
@@ -692,7 +690,7 @@ class CurrentDirectoryInfo:
 
     @property
     def name(self):
-        return self._name
+        return self._name if self._name is not None else "/"
 
     @property
     def selected(self):
@@ -928,7 +926,7 @@ class PhotoContainer:
             if shuffle:
                 query.order_by(func.random())
 
-            for row in persistent_session.execute(query):
+            for row in persistent_session.scalars(query):
                 runtime_session.add(PhotoOrder(photo_id=row))
             runtime_session.commit()
 
@@ -936,7 +934,7 @@ class PhotoContainer:
     def num_selected_photos(self):
         """Get the number of selected photos"""
         with RUNTIME_SESSION() as session:
-            return session.scalars(
+            return session.execute(
                 select(func.count(PhotoOrder.id))
             ).scalar_one()
 
