@@ -175,6 +175,7 @@ class _StyleGenerator:
         styles.configure("Default.Icon.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Title.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
         styles.configure("Voltage.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
+        styles.configure("SubTitleBar.Icon.Button.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string)
 
         styles.configure("Default.IconText.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Active.Default.IconText.Button.TLabel", background=Colour(0xffffff).string)
