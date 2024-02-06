@@ -13,7 +13,7 @@ from tkinter import ttk
 from .. import elements, params, styles
 from ..fonts import FONTS
 from ..icons import ICONS
-from ..params import WINDOW_WIDTH, TITLE_BAR_HEIGHT
+from ..params import WINDOW_WIDTH, WINDOW_HEIGHT, TITLE_BAR_HEIGHT
 from .container import _FileSystemExplorer, PageDirection, ViewUpdate, ItemViewUpdate, NameViewUpdate, SelectViewUpdate, DirectionsUpdate, FullImageViewUpdate
 from . import container
 
@@ -90,7 +90,12 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
         self._selection_button.enabled = False
         self._start_selection_callback()
         self._select_all_button.enabled = True
-        self._select_all_button.selected = self._photos_container.all_photos_selected
+        if self._photos_container.all_photos_selected:
+            self._select_all_button.selected = elements.CheckBoxSelection.Selected
+        elif self._photos_container.num_selected_photos == 0:
+            self._select_all_button.selected = elements.CheckBoxSelection.Unselected
+        else:
+            self._select_all_button.selected = elements.CheckBoxSelection.PartialSelect
         self._cancel_selection_button.enabled = True
         self._save_selection_button.enabled = True
 
@@ -108,11 +113,10 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
         self._cancel_selection_button.grid_remove()
         self._save_selection_button.grid_remove()
 
-        self._select_all_button.selected = False # TODO: Can't be selected and disabled
         self._select_all_button.enabled = False
         self._cancel_selection_button.enabled = False
         self._save_selection_button.enabled = False
-        self._end_selection_callback()
+        self._end_selection_callback(save=save)
         self._selection_button.enabled = True
 
 class GalleryTitleBar(elements.LimitedFrameBaseElement): # TODO: Rename styles
@@ -167,8 +171,9 @@ class _PhotoGalleryItemButton(elements._Button):
         self._album_icon_inactive = ICONS.get("folder", **styles._ICON_STYLES[self._style])
         self._album_icon_active = ICONS.get("folder", **styles._ICON_STYLES[f"Active.{self._style}"])
         self._album_mode = album_text is not None
+        self._text= tk.StringVar()
 
-        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, compound="center", style=self._style)
+        super().__init__(parent, ttk.Label, command, label_kwargs, enabled=enabled, compound="center", justify=tk.CENTER, anchor=tk.CENTER, textvariable=self._text, style=self._style)
 
         if album_text is not None:
             self.set_album_text(album_text)
@@ -197,14 +202,16 @@ class _PhotoGalleryItemButton(elements._Button):
     def set_album_text(self, album_text):
         """Switch button to album"""
         self._album_mode = True
-        self._element.configure(image=self._album_icon_inactive, text=album_text)
+        self._element.configure(image=self._album_icon_inactive)
         self._element.image = self._album_icon_inactive
+        self._text.set(album_text)
 
     def set_photo_text(self, photo_text):
         """Switch button to photo"""
         self._album_mode = False
-        self._element.configure(image="", text=photo_text)
+        self._element.configure(image="")
         self._element.image = ""
+        self._text.set(photo_text)
 
 class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
     """Single button for a photo or album"""
@@ -214,8 +221,9 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
         # Uses enabled to indicate hidden
         self._select_button = elements.CheckBoxButton(self._frame, select_command, unselect_command, enabled=False)
 
-        self._open_button = _PhotoGalleryItemButton(self._frame, open_command, enabled=False, album_text="")
+        self._open_button = _PhotoGalleryItemButton(self._frame, open_command, enabled=False, album_text="test")
         self._open_button.place(x=0, y=0, relwidth=1, relheight=1, anchor="nw")
+        #self._open_button.place(x=0, y=0, anchor="nw")#relwidth=1, relheight=1, anchor="nw")
 
         self._selections_enabled = False
 
@@ -247,6 +255,7 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
     def grid(self, album_text=None, photo_text=None, selection_mode=None, **grid_kwargs):
         self._show_button(album_text=album_text, photo_text=photo_text, selection_mode=selection_mode)
         super().grid(**grid_kwargs)
+        self._open_button.place(x=0, y=0, relwidth=1, relheight=1, anchor="nw")
 
     def grid_remove(self):
         self._hide_button()
@@ -322,26 +331,36 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
         for row in range(self._NUM_ROWS):
             self._labels[row] = {}
 
+            row_phy_index += 1
+            self._frame.grid_rowconfigure(row_phy_index, weight=2)
+            column_phy_index = 0
+
             for column in range(self._NUM_COLUMNS):
-                index = row + column
+                index = row * 3 + column
                 self._labels[row][column] = _PhotoGalleryItem(
                     self._frame,
                     _get_callback(self._open_item, index),
                     _get_callback(self._select_item, index),
                     _get_callback(self._unselect_item, index)
                 )
-                column_phy_index += 1
-                self._frame.grid_columnconfigure(column_phy_index, weight=1)
-                column_phy_index += 1
-                self._frame.grid_columnconfigure(column_phy_index, weight=1)
 
-            row_phy_index += 1
-            self._frame.grid_rowconfigure(row_phy_index, weight=1)
+                column_phy_index += 1
+                if row == 0:
+                    self._frame.grid_columnconfigure(column_phy_index, weight=2)
+
+                self._labels[row][column].grid(row=row_phy_index, column=column_phy_index, sticky="snew")
+
+                column_phy_index += 1
+                if row == 0:
+                    self._frame.grid_columnconfigure(column_phy_index, weight=1)
+
             row_phy_index += 1
             self._frame.grid_rowconfigure(row_phy_index, weight=1)
 
         self._selections_enabled = selections_enabled
         self.selections_enabled = selections_enabled
+
+        self._frame.grid_propagate(False)
 
     def setup_new_page(self, page_id):
         """Reset page with new ID
@@ -352,16 +371,22 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
             raise TypeError()
 
         self._current_page_id = page_id
-        for row in self._labels.items():
-            for item in row.items():
+        for row in self._labels.values():
+            for item in row.values():
                 item.grid_remove()
+
+    @property
+    def page_id(self):
+        if self._current_page_id is None:
+            raise TypeError()
+        return self._current_page_id
 
     def disable_page(self):
         """Disable buttons"""
         self._current_page_id = None
 
-        for row in self._labels.items():
-            for item in row.items():
+        for row in self._labels.values():
+            for item in row.values():
                 item.enabled = False
 
     def place_forget(self):
@@ -383,7 +408,7 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
 
         if isinstance(info, NameViewUpdate):
             item_type = "album_text" if info.directory else "photo_text"
-            self._labels[row][column].grid(row=row, column=column, selection_mode=self._selections_enabled, **{item_type: info.name})
+            self._labels[row][column].grid(selection_mode=self._selections_enabled, **{item_type: info.name})
         elif isinstance(info, SelectViewUpdate):
             self._labels[row][column].selection = info.selection
         else:
@@ -402,8 +427,8 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
         if self._current_page_id is None:
             return
 
-        for row in self._labels.items():
-            for item in row.items():
+        for row in self._labels.values():
+            for item in row.values():
                 item.enabled = False
 
         self._open_item_callback(self._current_page_id, index)
@@ -426,6 +451,7 @@ class PhotoGalleryPage(elements.LimitedFrameBaseElement):
 
     @selections_enabled.setter
     def selections_enabled(self, select : bool):
+        self._selections_enabled = select
         for row in range(self._NUM_ROWS):
             for column in range(self._NUM_COLUMNS):
                 self._labels[row][column].selections_enabled = select
@@ -452,6 +478,12 @@ class PhotoDisplayPage(elements.LimitedFrameBaseElement):
             raise TypeError()
 
         self._current_page_id = page_id
+
+    @property
+    def page_id(self):
+        if self._current_page_id is None:
+            raise TypeError()
+        return self._current_page_id
 
     def disable_page(self):
         self._current_page_id = None
@@ -527,6 +559,7 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
         super().__init__(parent, {})
 
         self._photo_container = photo_container
+        self._regenerate_slideshow = regenerate_slideshow
 
         self._title_bar = GalleryTitleBar(
             self._frame, self._goto_previous_page, self._goto_up_page, self._goto_next_page,
@@ -574,10 +607,10 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
                     self._current_window = self._generate_new_gallery_page()
             self._current_window.setup_new_page(new_page_id)
 
-            self._title_bar.text = os.path.join(*self._page_name)
+            self._title_bar.title = os.path.join(*self._page_name)
             self._update_view()
             self._title_bar.set_button_enables(open_selection_mode=True)
-        self._current_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+        self._current_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_HEIGHT - TITLE_BAR_HEIGHT*2), anchor="nw")
 
         super().place(**place_kwargs)
 
@@ -598,20 +631,30 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
     def _update_view(self):
         update = self._file_explorer.get_view_update()
         if update is not None:
-            if not issubclass(update, ViewUpdate):
+            if not isinstance(update, ViewUpdate):
                 raise TypeError()
             if isinstance(update, (NameViewUpdate, SelectViewUpdate, FullImageViewUpdate)):
                 self._current_window.update(update)
             elif isinstance(update, DirectionsUpdate):
+                if update.selection == container.PhotoDirectorySelection.Not:
+                    update_selection = elements.CheckBoxSelection.Unselected
+                elif update.selection == container.PhotoDirectorySelection.Partial:
+                    update_selection = elements.CheckBoxSelection.PartialSelect
+                elif update.selection == container.PhotoDirectorySelection.All:
+                    update_selection = elements.CheckBoxSelection.Selected
+                elif update.selection is None:
+                    update_selection = None
+                else:
+                    raise TypeError()
                 self._title_bar.set_button_enables(
                     back=update.backwards,
                     forward=update.forwards,
                     up=update.up,
-                    select_all=update.select_all
+                    select_all=update_selection
                 )
             else:
                 raise TypeError()
-        self._update_view_job = self._frame.after(self._update_view)
+        self._update_view_job = self._frame.after(200, self._update_view)
 
     def _goto_page(self, direction : PageDirection | int, current_page_id : Optional[int] = None):
         """This can be used for next, previous, up, or into
@@ -672,8 +715,10 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
 
         old_window = self._current_window
         self._current_window = new_window
-        self._current_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_WIDTH - TITLE_BAR_HEIGHT*2), anchor="nw")
+        self._current_window.place(x=0, y=TITLE_BAR_HEIGHT, width=WINDOW_WIDTH, height=(WINDOW_HEIGHT - TITLE_BAR_HEIGHT*2), anchor="nw")
         old_window.place_forget()
+
+        self._update_view()
 
     def _goto_previous_page(self):
         self._goto_page(PageDirection.Previous)
@@ -699,6 +744,8 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
         self._selection_mode = False
         self._current_window.selections_enabled = self._selection_mode
         self._file_explorer.save_or_cancel_changes(save)
+        if save:
+            self._regenerate_slideshow()
 
     def _select_item(self, current_page_id, index):
         if not self._selection_mode:
