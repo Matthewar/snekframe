@@ -80,6 +80,8 @@ class PhotoWindow:
 
     def _callback_change_slideshow_window(self):
         self._gallery_regenerate_required = True
+        self._photos.reorder(shuffle=self._settings.shuffle_photos)
+        self._title_bar.update_slideshow_enable(self._photos.photos_selected)
 
     def _open_slideshow_window(self):
         # TODO: Regenerate if settings change (rescan done)

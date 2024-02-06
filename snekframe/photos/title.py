@@ -163,3 +163,12 @@ class PhotoTitleBar(elements.LimitedFrameBaseElement):
         This will trigger updating this class for slideshow along with the slideshow callback triggers
         """
         self._slideshow_button.invoke()
+
+    def update_slideshow_enable(self, enable):
+        """Update whether photos are selected
+
+        Should only be called when not displaying the slideshow window
+        """
+        if self._slideshow_button.selected and not enable:
+            raise Exception()
+        self._slideshow_button.enabled = enable
