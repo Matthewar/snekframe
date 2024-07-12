@@ -219,7 +219,7 @@ class _FileSystemExplorer:
             try:
                 result = self._return_data_queue.get_nowait()
             except queue.Empty:
-                return
+                return None
             if isinstance(result, DisplayNewPage):
                 raise Exception()
             if result.current_page_id < self._current_displayed_page_id:
