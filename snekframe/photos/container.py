@@ -503,13 +503,14 @@ class _FileSystemExplorer:
                         else:
                             directory_info[-1].selected = item.select
 
-                        self._return_data_queue.put( # This seems potentially unnecessary
-                            SelectViewUpdate(
-                                current_page_id=current_page_id,
-                                index=item.index,
-                                selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
-                            )
-                        )
+                        # TODO: Are these necessary
+                        #self._return_data_queue.put(
+                        #    SelectViewUpdate(
+                        #        current_page_id=current_page_id,
+                        #        index=item.index,
+                        #        selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
+                        #    )
+                        #)
                     elif isinstance(item, SelectAll):
                         if current_page_id != item.current_page_id:
                             raise Exception()
@@ -518,19 +519,20 @@ class _FileSystemExplorer:
                             for page in directory_info[0].get_page(page_id):
                                 page.selected = item.select
 
-                        self._return_data_queue.put(
-                            DirectionsUpdate(
-                                current_page_id=current_page_id,
-                                backwards=None,
-                                forwards=None,
-                                up=None,
-                                selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
-                            )
-                        )
-                        if current_display_stage and current_display_stage[0] == self._PageDisplayStage.Selection:
-                            current_display_index = 0
-                        else:
-                            current_display_stage.append(self._PageDisplayStage.Selection)
+                        # TODO: Are these necessary
+                        #self._return_data_queue.put(
+                        #    DirectionsUpdate(
+                        #        current_page_id=current_page_id,
+                        #        backwards=None,
+                        #        forwards=None,
+                        #        up=None,
+                        #        selection=PhotoDirectorySelection.All if item.select else PhotoDirectorySelection.Not
+                        #    )
+                        #)
+                        #if current_display_stage and current_display_stage[0] == self._PageDisplayStage.Selection:
+                        #    current_display_index = 0
+                        #else:
+                        #    current_display_stage.append(self._PageDisplayStage.Selection) # What happens if this is already in the list
                     elif isinstance(item, StartExplorer):
                         if current_page_id is not None or directory_info:
                             raise Exception()
