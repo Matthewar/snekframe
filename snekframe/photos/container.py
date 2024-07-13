@@ -219,7 +219,7 @@ class _FileSystemExplorer:
             try:
                 result = self._return_data_queue.get_nowait()
             except queue.Empty:
-                return
+                return None
             if isinstance(result, DisplayNewPage):
                 raise Exception()
             if result.current_page_id < self._current_displayed_page_id:
@@ -503,7 +503,7 @@ class _FileSystemExplorer:
                         else:
                             directory_info[-1].selected = item.select
 
-                        # This seems potentially unnecessary
+                        # TODO: Are these necessary
                         #self._return_data_queue.put(
                         #    SelectViewUpdate(
                         #        current_page_id=current_page_id,
@@ -517,7 +517,7 @@ class _FileSystemExplorer:
 
                         directory_info[0].selected = item.select
 
-                        # This seems unnecessary
+                        # TODO: Are these necessary
                         #self._return_data_queue.put(
                         #    DirectionsUpdate(
                         #        current_page_id=current_page_id,
@@ -530,7 +530,7 @@ class _FileSystemExplorer:
                         #if current_display_stage and current_display_stage[0] == self._PageDisplayStage.Selection:
                         #    current_display_index = 0
                         #else:
-                        #    current_display_stage.append(self._PageDisplayStage.Selection)
+                        #    current_display_stage.append(self._PageDisplayStage.Selection) # What happens if this is already in the list
                     elif isinstance(item, StartExplorer):
                         if current_page_id is not None or directory_info:
                             raise Exception()
