@@ -515,9 +515,7 @@ class _FileSystemExplorer:
                         if current_page_id != item.current_page_id:
                             raise Exception()
 
-                        for page_id in range(directory_info[0].num_pages):
-                            for page in directory_info[0].get_page(page_id):
-                                page.selected = item.select
+                        directory_info[0].selected = item.select
 
                         # This seems unnecessary
                         #self._return_data_queue.put(
