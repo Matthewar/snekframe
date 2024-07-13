@@ -388,7 +388,6 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
                 )
             )
         )
-        self._image_right = PIL_ImageTk.PhotoImage(_resize_image(PIL_Image.open(os.path.join(FILES_LOCATION, PHOTOS_LOCATION, image_right_info.album, image_right_info.filename))))
         self._last_transition_time = datetime.datetime.now()
 
         self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
