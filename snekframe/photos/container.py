@@ -272,6 +272,12 @@ class _FileSystemExplorer:
         )
         self._thread.join()
 
+        self._current_displayed_page_id = None
+        self._thread = None
+        while not self._return_data_queue.empty():
+            self._return_data_queue.get()
+            self._return_data_queue.task_done()
+
     def __del__(self):
         self.close_explorer(False)
 

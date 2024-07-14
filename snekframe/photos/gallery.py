@@ -620,6 +620,20 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
             self._frame.after_cancel(self._update_view_job)
             self._update_view_job = None
             self._file_explorer.close_explorer()
+
+        if isinstance(self._current_window, PhotoGalleryPage):
+            self._gallery_loading_windows.append(self._current_window)
+            self._current_window.place_forget()
+            self._current_window = None
+        elif isinstance(self._current_window, PhotoDisplayPage):
+            self._display_loading_windows.append(self._current_window)
+            self._current_window.place_forget()
+            self._current_window = None
+        elif isinstance(self._current_window, NoPhotosPage):
+            pass
+        else:
+            raise TypeError()
+
         super().place_forget()
 
     def _generate_new_gallery_page(self):
