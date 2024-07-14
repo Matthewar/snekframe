@@ -14,7 +14,7 @@ from .. import elements, params, styles
 from ..fonts import FONTS
 from ..icons import ICONS
 from ..params import WINDOW_WIDTH, WINDOW_HEIGHT, TITLE_BAR_HEIGHT
-from .container import _FileSystemExplorer, PageDirection, ViewUpdate, ItemViewUpdate, NameViewUpdate, SelectViewUpdate, DirectionsUpdate, FullImageViewUpdate
+from .container import _FileSystemExplorer, PageDirection, ViewUpdate, ItemViewUpdate, NameViewUpdate, SelectViewUpdate, DirectionsUpdate, FullImageViewUpdate, CommitUpdate
 from . import container
 
 class GalleryAlbumButtons(elements.LimitedFrameBaseElement):
@@ -577,6 +577,7 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
         self._display_loading_windows : List[PhotoDisplayPage] = [] # For loading display pages
 
         self._selection_mode = False
+        self._selection_committed = False
 
     def place(self, **place_kwargs):
         if self._photo_container.num_photos == 0:
@@ -642,7 +643,7 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
     def _generate_new_display_page(self):
         return PhotoDisplayPage(self._frame, self._select_item, self._unselect_item, self._selection_mode)
 
-    def _update_view(self):
+    def _update_view(self, background : bool = True):
         update = self._file_explorer.get_view_update()
         if update is not None:
             if not isinstance(update, ViewUpdate):
@@ -666,9 +667,14 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
                     up=update.up,
                     select_all=update_selection
                 )
+            elif isinstance(update, CommitUpdate):
+                if self._selection_committed:
+                    raise Exception()
+                self._selection_committed = True
             else:
                 raise TypeError()
-        self._update_view_job = self._frame.after(200, self._update_view)
+        if background:
+            self._update_view_job = self._frame.after(200, self._update_view)
 
     def _goto_page(self, direction : PageDirection | int, current_page_id : Optional[int] = None):
         """This can be used for next, previous, up, or into
@@ -750,14 +756,17 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
         if self._selection_mode:
             return
         self._selection_mode = True
+        self._selection_committed = False
         self._current_window.selections_enabled = self._selection_mode
 
     def _end_selection_mode(self, save=False):
         if not self._selection_mode:
             return
-        self._selection_mode = False
-        self._current_window.selections_enabled = self._selection_mode
         self._file_explorer.save_or_cancel_changes(save)
+        self._current_window.selections_enabled = False
+        while not self._selection_committed:
+            self._update_view(background=False)
+        self._selection_mode = False
         if save:
             self._regenerate_slideshow()
 

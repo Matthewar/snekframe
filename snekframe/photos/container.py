@@ -127,6 +127,11 @@ class DirectionsUpdate(ViewUpdate):
 class FullImageViewUpdate(ViewUpdate):
     image : PIL_ImageTk.PhotoImage
 
+@dataclass
+class CommitUpdate(ViewUpdate):
+    """Commit/Rollback complete"""
+    pass
+
 class _FileSystemExplorer:
     def __init__(self):
         self._request_queue = queue.Queue()
@@ -567,6 +572,11 @@ class _FileSystemExplorer:
                                 session.commit()
                             else:
                                 session.rollback()
+                        self._return_data_queue.put(
+                            CommitUpdate(
+                                current_page_id=current_page_id
+                            )
+                        )
                     elif isinstance(item, CloseExplorer):
                         finished = True
                     else:
