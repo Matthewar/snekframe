@@ -228,11 +228,26 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
         self._open_button.place(x=0, y=0, relwidth=1, relheight=1, anchor="nw")
         #self._open_button.place(x=0, y=0, anchor="nw")#relwidth=1, relheight=1, anchor="nw")
 
+        self._visible = False
+
         self._selections_enabled = False
+        self._selection_known = False
+
+    @property
+    def enabled(self):
+        return self._open_button.enabled
+
+    @enabled.setter
+    def enabled(self, enable : bool):
+        self._open_button.enabled = enable
+        if enable and not (self._selection_known and self._selections_enabled):
+            return
+        self._select_button.enabled = enable
 
     def _show_button(self, album_text=None, photo_text=None, selection_mode=None):
-        if self._open_button.enabled:
+        if self._visible:
             return
+        self._visible = True
         self._open_button.enabled = True
         if album_text is not None:
             self._open_button.set_album_text(album_text)
@@ -242,8 +257,12 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
             self.selections_enabled = selection_mode
 
     def _hide_button(self):
-        if not self._open_button.enabled:
+        if self._selection_known:
+            self._selection_known = False
+            self._select_button.place_forget()
+        if not self._visible:
             return
+        self._visible = False
         self._open_button.enabled = False
         self._select_button.enabled = False
 
@@ -265,13 +284,8 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
         super().grid_remove()
 
     @property
-    def visible(self):
-        """Whether the entire button is visible"""
-        return self._open_button.enabled
-
-    @property
     def selections_enabled(self):
-        return self._select_button.enabled
+        return self._selections_enabled
 
     @selections_enabled.setter
     def selections_enabled(self, enable : bool):
@@ -279,15 +293,20 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
             self._select_button.place_forget()
             self._selections_enabled = False
         elif not self._selections_enabled and enable:
-            self._select_button.place(x=0, y=0, anchor="nw")
-            self._select_button.tkraise()
             self._selections_enabled = True
-            self._select_button.enabled = False
-            self._select_button.selection = elements.CheckBoxSelection.PartialSelect
+            self._select_button.enabled = self._selection_known
+            if self._selection_known:
+                self._show_selection()
+            else:
+                self._select_button.selection = elements.CheckBoxSelection.PartialSelect
+
+    def _show_selection(self):
+        self._select_button.place(x=0, y=0, anchor="nw")
+        self._select_button.tkraise()
 
     @property
     def selection(self):
-        if self._select_button.enabled:
+        if self._selections_enabled and self._selection_known:
             return self._select_button.selected
         return None
 
@@ -301,8 +320,12 @@ class _PhotoGalleryItem(elements.LimitedFrameBaseElement):
             self._select_button.selected = elements.CheckBoxSelection.Selected
         else:
             raise TypeError()
-        if self._selections_enabled and not self._select_button.enabled:
-            self._select_button.enabled = True
+        if self._selections_enabled:
+            if not self._select_button.enabled:
+                self._select_button.enabled = True
+            if not self._selection_known:
+                self._show_selection()
+        self._selection_known = True
 
 class PhotoGalleryPage(elements.LimitedFrameBaseElement):
     _NUM_ROWS = params.NUM_ROWS_PER_GALLERY_PAGE
