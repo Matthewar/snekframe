@@ -314,7 +314,7 @@ class _FileSystemExplorer:
                         if isinstance(directory_info[-1], CurrentDirectoryInfo):
                             backwards = page_number[-1] > 0
                             forwards = page_number[-1] < (directory_info[-1].num_pages - 1)
-                        else:
+                        else: # TODO: Allow forward and back
                             backwards = False
                             forwards = False
                         self._return_data_queue.put(
