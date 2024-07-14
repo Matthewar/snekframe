@@ -389,35 +389,13 @@ class _FileSystemExplorer:
 
                         current_display_stage.pop(0)
                     elif current_display_stage[0] == self._PageDisplayStage.SelectDirection:
-                        # Searching for select all settings
-                        total_selection = None
-                        for page_id in range(directory_info[0].num_pages):
-                            for page in directory_info[0].get_page(page_id):
-                                if isinstance(page, CurrentDirectoryInfo):
-                                    page_selection = page.selected
-                                elif page.selected:
-                                    page_selection = PhotoDirectorySelection.All
-                                else:
-                                    page_selection = PhotoDirectorySelection.Not
-
-                                if page_selection == PhotoDirectorySelection.Partial:
-                                    total_selection = page_selection
-                                    break
-                                if total_selection is None:
-                                    total_selection = page_selection
-                                elif total_selection == PhotoDirectorySelection.Not and page_selection == PhotoDirectorySelection.All:
-                                    total_selection = PhotoDirectorySelection.Partial
-                                    break
-                                elif total_selection == PhotoDirectorySelection.All and page_selection == PhotoDirectorySelection.Not:
-                                    total_selection = PhotoDirectorySelection.Partial
-                                    break
                         self._return_data_queue.put(
                             DirectionsUpdate(
                                 current_page_id=current_page_id,
                                 backwards=None,
                                 forwards=None,
                                 up=None,
-                                selection=total_selection
+                                selection=directory_info[0].selected
                             )
                         )
 
