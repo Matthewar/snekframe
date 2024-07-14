@@ -78,9 +78,13 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
 
         column += 1
 
-    def set_button_enables(self, select_all=None, open_selection_mode=None):
+    def set_button_enables(self, select_all=None, enable_select_all=None, open_selection_mode=None):
         if select_all is not None:
             self._select_all_button.selected = select_all
+            if not self._select_all_button.enabled and enable_select_all is None:
+                self._select_all_button.enabled = True
+        if enable_select_all is not None:
+            self._select_all_button.enabled = enable_select_all
         if open_selection_mode is not None:
             if self._save_selection_button.enabled:
                 # Already in selection mode, shouldn't be changing this
@@ -89,7 +93,6 @@ class GallerySelectButtons(elements.LimitedFrameBaseElement):
     def _start_selection_mode(self):
         self._selection_button.enabled = False
         self._start_selection_callback()
-        self._select_all_button.enabled = True
         if self._photos_container.all_photos_selected:
             self._select_all_button.selected = elements.CheckBoxSelection.Selected
         elif self._photos_container.num_selected_photos == 0:
@@ -141,9 +144,9 @@ class GalleryTitleBar(elements.LimitedFrameBaseElement): # TODO: Rename styles
     def title(self, value):
         self._title.text = value
 
-    def set_button_enables(self, back=None, up=None, forward=None, select_all=None, open_selection_mode=None):
+    def set_button_enables(self, back=None, up=None, forward=None, select_all=None, enable_select_all=None, open_selection_mode=None):
         self._album_buttons.set_button_enables(back=back, up=up, forward=forward)
-        self._select_buttons.set_button_enables(select_all=select_all, open_selection_mode=open_selection_mode)
+        self._select_buttons.set_button_enables(select_all=select_all, enable_select_all=enable_select_all, open_selection_mode=open_selection_mode)
 
 class NoPhotosPage(elements.LimitedFrameBaseElement):
     def __init__(self, parent : ttk.Frame):
