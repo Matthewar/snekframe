@@ -165,10 +165,7 @@ class PhotoTitleBar(elements.LimitedFrameBaseElement):
         self._slideshow_button.invoke()
 
     def update_slideshow_enable(self, enable):
-        """Update whether photos are selected
-
-        Should only be called when not displaying the slideshow window
-        """
+        """Update whether photos are selected"""
         if self._slideshow_button.selected and not enable:
-            raise Exception()
+            self._slideshow_button.selected = False
         self._slideshow_button.enabled = enable
