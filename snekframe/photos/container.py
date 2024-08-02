@@ -794,10 +794,10 @@ class PhotoContainer:
             runtime_session.commit()
 
             existing_photos = persistent_session.execute(
-                select(PhotoListV1.path, PhotoListV1.filename)
+                select(PhotoListV1.id, PhotoListV1.path, PhotoListV1.filename)
             )
             for row in existing_photos:
-                runtime_session.add(ExistingFiles(photo_path=os.path.join(*row), found=False))
+                runtime_session.add(ExistingFiles(photolist_id=row[0], photo_path=os.path.join(*row[1:]), found=False))
 
             PHOTOS_PATH = pathlib.Path(os.path.join(params.FILES_LOCATION, params.PHOTOS_LOCATION))
 
@@ -876,13 +876,16 @@ class PhotoContainer:
 
             scan_directory(None)
 
-            persistent_session.commit()
-
             lost_files = runtime_session.execute(
-                select(ExistingFiles.photo_path).where(ExistingFiles.found == False)
+                select(ExistingFiles.photolist_id, ExistingFiles.photo_path).where(ExistingFiles.found == False)
             )
-            for filepath in lost_files:
+            for photolist_id, filepath in lost_files:
                 logging.warning("Cannot find photo '%s'", filepath)
+                persistent_session.execute(
+                    delete(PhotoListV1).where(PhotoListV1.id == photolist_id)
+                )
+
+            persistent_session.commit()
 
             runtime_session.execute(delete(ExistingFiles))
             runtime_session.commit()
