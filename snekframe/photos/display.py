@@ -99,7 +99,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
 
         self._title_showing = False
 
-        self._photo = ttk.Label(self._frame, text="There should be a photo here", style="Image.DisplayWindow.TLabel")
+        self._photo = ttk.Label(self._frame, text="Error: Photos unable to load. Try rescan.", style="Image.DisplayWindow.TLabel")
         self._photo.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         self._image_ids.clear()

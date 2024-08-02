@@ -192,7 +192,7 @@ class _StyleGenerator:
         #styles.configure("Selected.GalleryItem.Button.TFrame", background="#ffffff", foreground="#000000")
 
         styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR.string)
-        styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string)
+        styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("TitleBar.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
         styles.configure("TitleBar.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
 
