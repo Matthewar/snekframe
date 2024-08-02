@@ -308,7 +308,7 @@ class PhotoSettings(elements.LimitedFrameBaseElement):
     def _trigger_rescan(self):
         """Rescan directory for photos"""
         # TODO: Add threading? Need to block moving off this screen if so
-        self._photos_container.rescan(self._settings_container.shuffle_photos)
+        self._photos_container.rescan(shuffle=self._settings_container.shuffle_photos)
         self._destroy_photo_window()
         self._update_num_photo_labels()
 
