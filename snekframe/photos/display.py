@@ -4,6 +4,7 @@ from collections import deque
 from dataclasses import dataclass
 import datetime
 from enum import Enum, auto
+import logging
 import os.path
 import time
 from typing import Callable, Iterable
@@ -11,9 +12,9 @@ from typing import Callable, Iterable
 import tkinter as tk
 from tkinter import ttk
 
-from sqlalchemy.sql.expression import select
+from sqlalchemy.sql.expression import select, update
 
-from PIL import Image as PIL_Image, ImageTk as PIL_ImageTk, ImageOps as PIL_ImageOps
+from PIL import Image as PIL_Image, ImageTk as PIL_ImageTk, ImageOps as PIL_ImageOps, UnidentifiedImageError
 
 from .. import elements, settings
 from ..db import RUNTIME_SESSION, PERSISTENT_SESSION, PhotoListV1
@@ -48,19 +49,19 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             parent : tk.Frame,
             settings_container : settings.SettingsContainer,
             show_title : Callable[[], None],
-            hide_title : Callable[[], None]):
+            hide_title : Callable[[], None],
+            disable_slideshow : Callable[[], None]):
         super().__init__(parent, {}, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, style="DisplayWindow")
 
         self._settings = settings_container
         self._show_title = show_title
         self._hide_title = hide_title
+        self._disable_slideshow = disable_slideshow
 
         self._photo = None
-        self._image_left = None
-        self._image_centre = None
-        self._image_right = None
 
-        self._image_ids = deque([None] * 5, maxlen=5)
+        self._image_ids : deque[_ImageIdPair] = deque(maxlen=3)
+        self._loaded_images : deque[PIL_ImageTk.PhotoImage] = deque(maxlen=3)
 
         self._photo_change_job = None
         self._last_action_time = datetime.datetime.now()
@@ -76,7 +77,8 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self.regenerate_window()
 
     def place(self, **place_kwargs):
-        self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
+        if len(self._loaded_images) > 1:
+            self._photo_change_job = self._frame.after(10000, self._transition_next_photo)
         self._last_action_time = datetime.datetime.now()
         self._last_transition_time = datetime.datetime.now()
         self._title_showing = False
@@ -103,42 +105,58 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._photo.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         self._image_ids.clear()
+        self._loaded_images.clear()
 
-        self._image_ids.append(None)
+        discovered_photos = 0
+        loaded_all_photos = True
+        last_image_ordering_id = None
+        image_query = select(PhotoOrder).where(PhotoOrder.lost == False)
+
         with RUNTIME_SESSION() as session:
-            # For now just looking forwards?
-            for row in session.scalars(select(PhotoOrder).limit(4)):
-                self._image_ids.append(_ImageIdPair(ordering_id=row.id, photo_id=row.photo_id))
-        if len(self._image_ids) == 2:
-            self._image_ids.extend([self._image_ids[1]]*2 + [None])
-        elif len(self._image_ids) == 3:
-            self._image_ids.extend([self._image_ids[1], self._image_ids[2]])
-        elif len(self._image_ids) == 4:
-            self._image_ids.append(None)
+            while len(self._loaded_images) < 3:
+                new_image_query = image_query if last_image_ordering_id is None else image_query.where(PhotoOrder.id > last_image_ordering_id)
+                new_image_row = session.scalars(
+                    new_image_query.limit(1)
+                ).one_or_none()
 
-        self._image_left = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[1])[0]
+                if new_image_row is None:
+                    break
+
+                last_image_ordering_id = new_image_row.id
+                new_image_id = _ImageIdPair(ordering_id=new_image_row.id, photo_id=new_image_row.photo_id)
+                photo_path = self._get_photo_paths(new_image_id)[0]
+                try:
+                    new_image = PIL_Image.open(photo_path)
+                except FileNotFoundError:
+                    logging.warning("Cannot find photo '%s'", photo_path)
+                except UnidentifiedImageError:
+                    logging.warning("Unable to open file '%s'", photo_path)
+                else:
+                    self._image_ids.append(new_image_id)
+                    self._loaded_images.append(
+                        PIL_ImageTk.PhotoImage(
+                            _resize_image(
+                                new_image
+                            )
+                        )
+                    )
+                    continue
+                loaded_all_photos = False
+                session.execute(
+                    update(PhotoOrder).where(PhotoOrder.id == new_image_id.ordering_id).values(lost=True)
                 )
-            )
-        )
-        self._image_centre = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[2])[0]
-                )
-            )
-        )
-        self._photo.configure(image=self._image_centre)
-        self._photo.image = self._image_centre
-        self._image_right = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(self._image_ids[3])[0]
-                )
-            )
-        )
+            if not loaded_all_photos:
+                session.commit()
+
+        if len(self._loaded_images) > 0:
+            if len(self._loaded_images) > 1:
+                main_image = self._loaded_images[1]
+            else:
+                main_image = self._loaded_images[0]
+            self._photo.configure(image=main_image)
+            self._photo.image = main_image
+        else:
+            self._disable_slideshow()
 
         self._frame.bind("<Button-1>", self._frame_detect_click)
         self._frame.bind("<ButtonRelease-1>", self._frame_detect_release)
@@ -157,7 +175,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
 
 
     def _frame_detect_click(self, event):
-        if len(self._image_ids) == 1:
+        if len(self._image_ids) <= 1:
             return self._menu_click(event)
 
         if event.x < ((WINDOW_WIDTH / 2) - 50):
@@ -168,7 +186,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             return self._menu_click(event)
 
     def _frame_detect_release(self, event):
-        if len(self._image_ids) == 1:
+        if len(self._image_ids) <= 1:
             return self._menu_release(event)
 
         if event.x < ((WINDOW_WIDTH / 2) - 50):
@@ -179,7 +197,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             return self._menu_release(event)
 
     def _photo_detect_click(self, event):
-        if len(self._image_ids) == 1:
+        if len(self._image_ids) <= 1:
             return self._menu_click(event)
 
         x = event.x - (self._photo.winfo_reqwidth() / 2) + (WINDOW_WIDTH / 2)
@@ -192,7 +210,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             return self._menu_click(event)
 
     def _photo_detect_release(self, event):
-        if len(self._image_ids) == 1:
+        if len(self._image_ids) <= 1:
             return self._menu_release(event)
 
         x = event.x - (self._photo.winfo_reqwidth() / 2) + (WINDOW_WIDTH / 2)
@@ -205,40 +223,102 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             return self._menu_release(event)
 
     def _get_forward_image(self):
-        forward_query = select(PhotoOrder)
-        if self._image_ids[4] is not None:
-            forward_query = forward_query.where(PhotoOrder.id >= self._image_ids[4].ordering_id)
-        forward_query = forward_query.order_by(PhotoOrder.id).limit(2)
-
+        image_query = select(PhotoOrder).where(PhotoOrder.lost == False)
+        last_image_ordering_id = self._image_ids[-1].ordering_id
         with RUNTIME_SESSION() as session:
-            forward_images = session.scalars(forward_query).all()
-            next_image = forward_images[0]
-            next_image_id = _ImageIdPair(ordering_id=next_image.id, photo_id=next_image.photo_id)
-            self._image_ids.append(next_image_id)
-            if len(forward_images) > 1:
-                self._image_ids.append(_ImageIdPair(ordering_id=forward_images[1].id, photo_id=forward_images[1].photo_id))
-            else:
-                self._image_ids.append(None)
+            while True:
+                if last_image_ordering_id is None:
+                    new_image_query = image_query
+                else:
+                    new_image_query = image_query.where(PhotoOrder.id > last_image_ordering_id)
 
-        return next_image_id
+                new_image_row = session.scalars(
+                    new_image_query.limit(1)
+                ).one_or_none()
+
+                if new_image_row is None:
+                    if last_image_ordering_id is None:
+                        break
+                    else:
+                        last_image_ordering_id = None
+                else:
+                    if new_image_row.id == self._image_ids[0].ordering_id:
+                        break
+                    last_image_ordering_id = new_image_row.id
+                    new_image_id = _ImageIdPair(ordering_id=new_image_row.id, photo_id=new_image_row.photo_id)
+                    photo_path = self._get_photo_paths(new_image_id)[0]
+                    try:
+                        new_image = PIL_Image.open(photo_path)
+                    except FileNotFoundError:
+                        logging.warning("Cannot find photo '%s'", photo_path)
+                    except UnidentifiedImageError:
+                        logging.warning("Unable to open file '%s'", photo_path)
+                    else:
+                        self._image_ids.append(new_image_id)
+                        self._loaded_images.append(
+                            PIL_ImageTk.PhotoImage(
+                                _resize_image(
+                                    new_image
+                                )
+                            )
+                        )
+                        return
+                    session.execute(
+                        update(PhotoOrder).where(PhotoOrder.id == new_image_id.ordering_id).values(lost=True)
+                    )
+                    session.commit()
+
+        self._loaded_images.append(self._loaded_images.popleft())
+        self._image_ids.append(self._image_ids.popleft())
 
     def _get_reverse_image(self):
-        reverse_query = select(PhotoOrder)
-        if self._image_ids[0] is not None:
-            reverse_query = reverse_query.where(PhotoOrder.id <= self._image_ids[0].ordering_id)
-        reverse_query = reverse_query.order_by(PhotoOrder.id.desc()).limit(2)
-
+        image_query = select(PhotoOrder).where(PhotoOrder.lost == False)
+        last_image_ordering_id = self._image_ids[-1].ordering_id
         with RUNTIME_SESSION() as session:
-            reverse_images = session.scalars(reverse_query).all()
-            prev_image = reverse_images[0]
-            prev_image_id = _ImageIdPair(ordering_id=prev_image.id, photo_id=prev_image.photo_id)
-            self._image_ids.appendleft(prev_image_id)
-            if len(reverse_images) > 1:
-                self._image_ids.appendleft(_ImageIdPair(ordering_id=reverse_images[1].id, photo_id=reverse_images[1].photo_id))
-            else:
-                self._image_ids.appendleft(None)
+            while True:
+                if last_image_ordering_id is None:
+                    new_image_query = image_query
+                else:
+                    new_image_query = image_query.where(PhotoOrder.id < last_image_ordering_id)
 
-        return prev_image_id
+                new_image_row = session.scalars(
+                    new_image_query.order_by(PhotoOrder.id.desc()).limit(1)
+                ).one_or_none()
+
+                if new_image_row is None:
+                    if last_image_ordering_id is None:
+                        break
+                    else:
+                        last_image_ordering_id = None
+                else:
+                    if new_image_row.id == self._image_ids[-1].ordering_id:
+                        break
+                    last_image_ordering_id = new_image_row.id
+                    new_image_id = _ImageIdPair(ordering_id=new_image_row.id, photo_id=new_image_row.photo_id)
+                    photo_path = self._get_photo_paths(new_image_id)[0]
+                    try:
+                        new_image = PIL_Image.open(photo_path)
+                    except FileNotFoundError:
+                        logging.warning("Cannot find photo '%s'", photo_path)
+                    except UnidentifiedImageError:
+                        logging.warning("Unable to open file '%s'", photo_path)
+                    else:
+                        self._image_ids.appendleft(new_image_id)
+                        self._loaded_images.appendleft(
+                            PIL_ImageTk.PhotoImage(
+                                _resize_image(
+                                    new_image
+                                )
+                            )
+                        )
+                        return
+                    session.execute(
+                        update(PhotoOrder).where(PhotoOrder.id == new_image_id.ordering_id).values(lost=True)
+                    )
+                    session.commit()
+
+        self._loaded_images.appendleft(self._loaded_images.pop())
+        self._image_ids.appendleft(self._image_ids.pop())
 
     class _ActionType(Enum):
         Reverse = auto()
@@ -256,7 +336,10 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             self._action_job = self._frame.after(500, self._try_complete_action)
         elif self._action == self._ActionType.Reverse:
             if (time.time_ns() - self._action_timer) <= 500000000:
-                self._switch_reverse_image()
+                if len(self._loaded_images) < 3:
+                    self._switch_images()
+                else:
+                    self._switch_reverse_image()
             self._action_timer = None
             self._action = None
         else:
@@ -279,7 +362,10 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
             self._action_job = self._frame.after(500, self._try_complete_action)
         elif self._action == self._ActionType.Forward:
             if (time.time_ns() - self._action_timer) <= 500000000:
-                self._switch_forward_image()
+                if len(self._loaded_images) < 3:
+                    self._switch_images()
+                else:
+                    self._switch_forward_image()
             self._action_timer = None
             self._action = None
         else:
@@ -327,37 +413,25 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
         self._action = None
         self._action_job = None
 
+    def _switch_images(self):
+        if len(self._loaded_images) != 2:
+            raise Exception() # TODO: Better error message
+
+        self._loaded_images.append(self._loaded_images.popleft())
+        self._image_ids.append(self._image_ids.popleft())
+
+        self._photo.configure(image=self._loaded_images[1])
+        self._photo.image = self._loaded_images[1]
+
     def _switch_forward_image(self):
-        self._photo.configure(image=self._image_right)
-        self._photo.image = self._image_right
-
-        self._image_left = self._image_centre
-        self._image_centre = self._image_right
-
-        new_image_right_info = self._get_forward_image()
-        self._image_right = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(new_image_right_info)[0]
-                )
-            )
-        )
+        self._get_forward_image()
+        self._photo.configure(image=self._loaded_images[1])
+        self._photo.image = self._loaded_images[1]
 
     def _switch_reverse_image(self):
-        self._photo.configure(image=self._image_left)
-        self._photo.image = self._image_left
-
-        self._image_right = self._image_centre
-        self._image_centre = self._image_left
-
-        new_image_left_info = self._get_reverse_image()
-        self._image_left = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(new_image_left_info)[0]
-                )
-            )
-        )
+        self._get_reverse_image()
+        self._photo.configure(image=self._loaded_images[1])
+        self._photo.image = self._loaded_images[1]
 
     def _transition_next_photo(self):
         current_time = datetime.datetime.now()
@@ -375,19 +449,8 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
                 self._photo_change_job = self._frame.after(int((10-seconds_since_event)*1000), self._transition_next_photo)
                 return
 
-        self._photo.configure(image=self._image_right)
-        self._photo.image = self._image_right
-        self._image_left = self._image_centre
-        self._image_centre = self._image_right
+        self._switch_forward_image()
 
-        image_right_info = self._get_forward_image()
-        self._image_right = PIL_ImageTk.PhotoImage(
-            _resize_image(
-                PIL_Image.open(
-                    self._get_photo_paths(image_right_info)[0]
-                )
-            )
-        )
         self._last_transition_time = datetime.datetime.now()
 
         self._photo_change_job = self._frame.after(10000, self._transition_next_photo)

@@ -81,7 +81,7 @@ class PhotoWindow:
     def _callback_change_slideshow_window(self):
         self._gallery_regenerate_required = True
         self._photos.reorder(shuffle=self._settings.shuffle_photos)
-        self._title_bar.update_slideshow_enable(self._photos.photos_selected)
+        self._title_bar.update_slideshow_enable(self._photos.valid_photos_selected)
 
     def _open_slideshow_window(self):
         # TODO: Regenerate if settings change (rescan done)
@@ -90,7 +90,13 @@ class PhotoWindow:
         self._close_current_window()
 
         if self._display_window is None:
-            self._display_window = PhotoDisplayWindow(self._window, self._settings, self._title_bar.place, self._title_bar.place_forget)
+            self._display_window = PhotoDisplayWindow(
+                self._window,
+                self._settings,
+                self._title_bar.place,
+                self._title_bar.place_forget,
+                lambda: self._title_bar.update_slideshow_enable(False)
+            )
         elif self._gallery_regenerate_required:
             self._display_window.regenerate_window()
 
@@ -107,6 +113,7 @@ class PhotoWindow:
             self._gallery_window.place_forget()
             del self._gallery_window
             self._gallery_window = None
+        self._title_bar.update_slideshow_enable(self._photos.valid_photos_selected)
 
     def _open_settings(self):
         if not self._title_bar.visible:

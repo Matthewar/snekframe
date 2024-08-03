@@ -948,3 +948,12 @@ class PhotoContainer:
     def all_photos_selected(self):
         """Whether all photos are selected"""
         return self.num_photos == self.num_selected_photos
+
+    @property
+    def valid_photos_selected(self):
+        """Return whether any (not lost) photos are selected"""
+        with RUNTIME_SESSION() as session:
+            result = session.scalars(
+                select(PhotoOrder.id).where(PhotoOrder.lost == False).limit(1)
+            ).one_or_none()
+            return result is not None

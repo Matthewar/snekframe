@@ -16,6 +16,7 @@ class ExistingFiles(RuntimeBase):
     __tablename__ = "existingphotos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    photolist_id: Mapped[int]
     photo_path: Mapped[str] = mapped_column(String(params.MAX_PATH_SIZE))
     found: Mapped[bool]
 
@@ -36,3 +37,4 @@ class PhotoOrder(RuntimeBase):
 
     id : Mapped[int] = mapped_column(primary_key=True)
     photo_id : Mapped[int]
+    lost : Mapped[int] = mapped_column(insert_default=False)
