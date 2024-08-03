@@ -656,10 +656,10 @@ class PhotoGalleryWindow(elements.LimitedFrameBaseElement):
             self._display_loading_windows.append(self._current_window)
             self._current_window.place_forget()
             self._current_window = None
-        elif isinstance(self._current_window, NoPhotosPage):
+        elif isinstance(self._current_window, NoPhotosPage) or self._current_window is None:
             pass
         else:
-            raise TypeError()
+            raise TypeError(type(self._current_window))
 
         super().place_forget()
 
