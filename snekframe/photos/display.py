@@ -273,7 +273,7 @@ class PhotoDisplayWindow(elements.LimitedFrameBaseElement):
 
     def _get_reverse_image(self):
         image_query = select(PhotoOrder).where(PhotoOrder.lost == False)
-        last_image_ordering_id = self._image_ids[-1].ordering_id
+        last_image_ordering_id = self._image_ids[0].ordering_id
         with RUNTIME_SESSION() as session:
             while True:
                 if last_image_ordering_id is None:
