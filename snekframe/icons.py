@@ -38,6 +38,16 @@ class _Icons:
         "bolt": "bolt.svg",
         "system": "power_settings.svg",
         "display": "display_settings.svg",
+        "photo_library": "photo_library.svg",
+        "cross": "close.svg",
+        "tick": "done.svg",
+        "arrow_back": "arrow_back.svg",
+        "arrow_forward": "arrow_forward.svg",
+        "arrow_upward": "arrow_upward.svg",
+        "empty_checkbox": "check_box_outline_blank.svg",
+        "partial_checkbox": "check_box_mid.svg",
+        "ticked_checkbox": "check_box.svg",
+        "folder": "folder.svg",
     }
     _IMAGE_BASE_PATH = importlib.resources.files(images)
 

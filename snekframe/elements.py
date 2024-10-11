@@ -1,6 +1,7 @@
 """UI Elements"""
 
 import datetime
+from enum import Enum, auto
 
 import tkinter as tk
 from tkinter import ttk
@@ -330,6 +331,109 @@ class IconButton(_Button):
     def _style_disabled(self):
         self._element.configure(image=self._disabled_icon)
         self._element.image = self._disabled_icon
+
+class CheckBoxSelection(Enum):
+    Unselected = auto()
+    PartialSelect = auto()
+    Selected = auto()
+
+class CheckBoxButton(_Button):
+    """Special version of radiobutton where selection has three states"""
+    def __init__(self, parent, select_command, unselect_command, enabled=True, selected=CheckBoxSelection.Unselected, style="Default", **label_kwargs):
+        if not isinstance(selected, CheckBoxSelection):
+            raise TypeError()
+
+        self._selected = selected
+        self._unselect_command = unselect_command
+
+        base_style_name = f"{style}.Icon.Button.TLabel"
+
+        self._unselected_inactive_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[base_style_name])
+        self._unselected_active_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
+        self._unselected_disabled_icon = ICONS.get("empty_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
+
+        self._partialselect_inactive_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[base_style_name])
+        self._partialselect_active_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
+        self._partialselect_disabled_icon = ICONS.get("partial_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
+
+        self._selected_inactive_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[base_style_name])
+        self._selected_active_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Active.{base_style_name}"])
+        self._selected_disabled_icon = ICONS.get("ticked_checkbox", **styles._ICON_STYLES[f"Disabled.{base_style_name}"])
+
+        super().__init__(parent, ttk.Label, select_command, label_kwargs, enabled=enabled)
+
+    def invoke(self):
+        if not self._enabled:
+            # Don't trigger if already enabled
+            return
+
+        if self._selected in (CheckBoxSelection.Unselected, CheckBoxSelection.PartialSelect):
+            self.selected = CheckBoxSelection.Selected
+            self._command()
+        elif self._selected == CheckBoxSelection.Selected:
+            self.selected = CheckBoxSelection.Unselected
+            self._unselect_command()
+        else:
+            raise TypeError()
+        self._style_normal()
+
+    @property
+    def selected(self):
+        return self._selected
+
+    @selected.setter
+    def selected(self, select):
+        if not isinstance(select, CheckBoxSelection):
+            raise TypeError()
+
+        if select != self._selected:
+            self._selected = select
+            if self._enabled:
+                self._style_normal()
+            else:
+                self._style_disabled()
+
+    def _style_normal(self):
+        if self._selected == CheckBoxSelection.Unselected:
+            image = self._unselected_inactive_icon
+        elif self._selected == CheckBoxSelection.PartialSelect:
+            image = self._partialselect_inactive_icon
+        elif self._selected == CheckBoxSelection.Selected:
+            image = self._selected_inactive_icon
+        else:
+            raise TypeError()
+
+        self._element.configure(image=image)
+        self._element.image = image
+
+    def _style_active(self):
+        if self._selected == CheckBoxSelection.Unselected:
+            image = self._unselected_active_icon
+        elif self._selected == CheckBoxSelection.PartialSelect:
+            image = self._partialselect_active_icon
+        elif self._selected == CheckBoxSelection.Selected:
+            image = self._selected_active_icon
+        else:
+            raise TypeError()
+
+        self._element.configure(image=image)
+        self._element.image = image
+
+    def _style_disabled(self):
+        if self._selected == CheckBoxSelection.Unselected:
+            image = self._unselected_disabled_icon
+        elif self._selected == CheckBoxSelection.PartialSelect:
+            image = self._partialselect_disabled_icon
+        elif self._selected == CheckBoxSelection.Selected:
+            image = self._selected_disabled_icon
+        else:
+            raise TypeError()
+
+        self._element.configure(image=image)
+        self._element.image = image
+
+    def tkraise(self):
+        return self._element.tkraise()
 
 class _RadioButton(_Button):
     """Button that can be selected"""
