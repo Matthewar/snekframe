@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.0](https://github.com/Matthewar/snekframe/releases/tag/v0.2.0)
+- New filesystem and gallery to explore/select photos (#85)
+
 ## [v0.1.0](https://github.com/Matthewar/snekframe/releases/tag/v0.1.0)
 - Added low voltage warning when insufficient power supply detected
 - Improved settings page layout
