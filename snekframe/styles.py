@@ -39,6 +39,7 @@ HIGHLIGHT_BACKGROUND_COLOUR = Colour(0x2E3033)
 PHOTO_BACKGROUND_COLOUR = Colour("0x000000") # Black
 FONT_COLOUR = Colour(0xffffff) # White
 DISABLED_COLOUR = Colour(0xabb0b8)
+SUBTITLE_BACKGROUND_COLOUR = Colour(0x58595C)
 
 def _append_style_name(base_style : str, style_name : Optional[str]) -> str:
     """Helper function to build a style name"""
@@ -119,6 +120,39 @@ _ICON_STYLES = {
         "background": Colour(0xffffff),
         "pathcolour": HIGHLIGHT_BACKGROUND_COLOUR,
     },
+    "SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xabb0b8),
+    },
+    "Active.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+    "Disabled.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0x000000),
+    },
+    "Selected.SubTitleBar.Icon.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+
+    "GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xabb0b8),
+    },
+    "Active.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
+    "Disabled.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0x000000),
+    },
+    "Selected.GalleryItem.Button.TLabel": {
+        "background": SUBTITLE_BACKGROUND_COLOUR,
+        "pathcolour": Colour(0xffffff),
+    },
 }
 
 class _StyleGenerator:
@@ -141,6 +175,7 @@ class _StyleGenerator:
         styles.configure("Default.Icon.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Title.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
         styles.configure("Voltage.Icon.Button.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
+        styles.configure("SubTitleBar.Icon.Button.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string)
 
         styles.configure("Default.IconText.Button.TLabel", background=DEFAULT_BACKGROUND_COLOUR.string)
         styles.configure("Active.Default.IconText.Button.TLabel", background=Colour(0xffffff).string)
@@ -151,10 +186,17 @@ class _StyleGenerator:
         styles.configure("Disabled.Default.IconText.Button.TFrame", background=Colour(0x000000).string)
         styles.configure("Selected.Default.IconText.Button.TFrame", background=Colour(0xffffff).string, foreground="#abb0b8")
 
+        styles.configure("GalleryItem.Button.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+        styles.configure("Active.GalleryItem.Button.TFrame", background="#ffffff")
+        #styles.configure("Disabled.GalleryItem.Button.TFrame", background="#000000")
+        #styles.configure("Selected.GalleryItem.Button.TFrame", background="#ffffff", foreground="#000000")
+
         styles.configure("DisplayWindow.TFrame", background=PHOTO_BACKGROUND_COLOUR.string)
-        styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string)
+        styles.configure("Image.DisplayWindow.TLabel", background=PHOTO_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
         styles.configure("TitleBar.TFrame", background=HIGHLIGHT_BACKGROUND_COLOUR.string)
         styles.configure("TitleBar.TLabel", background=HIGHLIGHT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
-        styles.configure("TitleBar.TButton", background=DEFAULT_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
+
+        styles.configure("SubTitleBar.TFrame", background=SUBTITLE_BACKGROUND_COLOUR.string)
+        styles.configure("SubTitleBar.TLabel", background=SUBTITLE_BACKGROUND_COLOUR.string, foreground=FONT_COLOUR.string)
 
 STYLES = _StyleGenerator()
